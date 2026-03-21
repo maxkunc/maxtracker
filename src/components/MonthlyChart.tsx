@@ -1,15 +1,14 @@
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { TrendingUp } from "lucide-react";
-import { formatCurrency } from "@/lib/currency";
-import type { MonthlyTotal } from "@/lib/income";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCurrency, type CurrencyCode } from "@/lib/currency";
 
 interface MonthlyChartProps {
-  data: MonthlyTotal[];
-  currency: string;
+  currency: CurrencyCode;
+  data: Array<{ label: string; month: string; total: number }>;
 }
 
-export default function MonthlyChart({ data, currency }: MonthlyChartProps) {
+export default function MonthlyChart({ currency, data }: MonthlyChartProps) {
   return (
     <Card className="animate-fade-in border-border/80 shadow-sm">
       <CardHeader>
@@ -20,7 +19,7 @@ export default function MonthlyChart({ data, currency }: MonthlyChartProps) {
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
-          <p className="py-8 text-center text-muted-foreground">No income data yet for {currency}. Add an entry or switch currency.</p>
+          <p className="py-10 text-center text-muted-foreground">No income found for the current filters.</p>
         ) : (
           <div className="space-y-6">
             <div className="h-64">

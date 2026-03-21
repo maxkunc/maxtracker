@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { Check, FileText, Pencil, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,15 +10,21 @@ import { formatCurrency } from "@/lib/currency";
 import type { IncomeEntry } from "@/lib/income";
 
 interface TransactionLogProps {
+  categoryNames: Record<string, string>;
   entries: IncomeEntry[];
-  onUpdate: (id: string, data: Partial<Omit<IncomeEntry, "id" | "createdAt">>) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => Promise<void>;
+  onUpdate: (id: string, data: { amount?: number; source?: string }) => Promise<void>;
 }
 
-export default function TransactionLog({ entries, onUpdate, onDelete }: TransactionLogProps) {
+export default function TransactionLog({ categoryNames, entries, onDelete, onUpdate }: TransactionLogProps) {
   const [editId, setEditId] = useState<string | null>(null);
   const [editSource, setEditSource] = useState("");
   const [editAmount, setEditAmount] = useState("");
+
+  const sortedEntries = useMemo(
+    () => [...entries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [entries],
+  );
 
   const startEdit = (entry: IncomeEntry) => {
     setEditId(entry.id);
@@ -26,14 +32,17 @@ export default function TransactionLog({ entries, onUpdate, onDelete }: Transact
     setEditAmount(String(entry.amount));
   };
 
-  const confirmEdit = () => {
-    if (editId && editSource && editAmount) {
-      onUpdate(editId, { source: editSource, amount: parseFloat(editAmount) });
-      setEditId(null);
+  const confirmEdit = async () => {
+    if (!editId || !editSource.trim() || !editAmount) {
+      return;
     }
-  };
 
-  const sorted = [...entries].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+    await onUpdate(editId, {
+      amount: parseFloat(editAmount),
+      source: editSource.trim(),
+    });
+    setEditId(null);
+  };
 
   return (
     <Card className="animate-fade-in border-border/80 shadow-sm">
@@ -44,13 +53,14 @@ export default function TransactionLog({ entries, onUpdate, onDelete }: Transact
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {sorted.length === 0 ? (
-          <p className="py-8 text-center text-muted-foreground">No transactions recorded.</p>
+        {sortedEntries.length === 0 ? (
+          <p className="py-8 text-center text-muted-foreground">No transactions match the current filters.</p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Source</TableHead>
+                <TableHead>Category</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Split</TableHead>
@@ -58,7 +68,7 @@ export default function TransactionLog({ entries, onUpdate, onDelete }: Transact
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sorted.map((entry) => (
+              {sortedEntries.map((entry) => (
                 <TableRow key={entry.id}>
                   <TableCell>
                     {editId === entry.id ? (
@@ -71,20 +81,19 @@ export default function TransactionLog({ entries, onUpdate, onDelete }: Transact
                     )}
                   </TableCell>
                   <TableCell>
+                    <Badge variant="secondary">{entry.category_id ? categoryNames[entry.category_id] || "Unknown" : "Uncategorized"}</Badge>
+                  </TableCell>
+                  <TableCell>
                     {editId === entry.id ? (
                       <Input type="number" value={editAmount} onChange={(event) => setEditAmount(event.target.value)} className="h-8 w-28" />
                     ) : (
-                      <span className="font-semibold text-primary">{formatCurrency(entry.amount, entry.currency)}</span>
+                      <span className="font-semibold text-primary">{formatCurrency(entry.amount, entry.currency as "USD" | "EUR" | "CZK")}</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {format(new Date(entry.startDate), "MMM d, yyyy")}
-                  </TableCell>
+                  <TableCell className="text-muted-foreground">{format(new Date(`${entry.date}T00:00:00`), "MMM d, yyyy")}</TableCell>
                   <TableCell>
-                    {entry.splitMonths > 1 ? (
-                      <Badge variant="secondary">
-                        {entry.splitType === "custom" ? `Custom ${entry.splitMonths}m` : `${entry.splitMonths} months`}
-                      </Badge>
+                    {entry.split_months > 1 ? (
+                      <Badge variant="outline">{entry.split_type === "custom" ? `Custom ${entry.split_months}m` : `${entry.split_months} months`}</Badge>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
@@ -93,7 +102,7 @@ export default function TransactionLog({ entries, onUpdate, onDelete }: Transact
                     {editId === entry.id ? (
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" onClick={confirmEdit}>
-                          <Check className="h-4 w-4 text-success" />
+                          <Check className="h-4 w-4 text-primary" />
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => setEditId(null)}>
                           <X className="h-4 w-4" />

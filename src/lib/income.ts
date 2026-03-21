@@ -1,29 +1,49 @@
-export interface IncomeEntry {
-  id: string;
-  source: string;
+import type { Json, Tables } from "@/integrations/supabase/types";
+import type { CurrencyCode } from "@/lib/currency";
+
+export type Category = Tables<"categories">;
+export type IncomeEntry = Tables<"income_entries">;
+export type SplitType = "equal" | "custom";
+
+export interface IncomeEntryInput {
   amount: number;
-  currency: string;
-  startDate: string;
+  categoryId: string | null;
+  currency: CurrencyCode;
+  date: string;
+  monthlyAmounts?: number[] | null;
+  source: string;
   splitMonths: number;
-  splitType: "equal" | "custom";
-  monthlyAmounts?: number[];
-  createdAt: string;
+  splitType: SplitType;
 }
 
-export interface MonthlyTotal {
-  month: string;
-  label: string;
-  total: number;
-}
-
-const STORAGE_KEY = "incomeflow-entries";
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function round2(value: number) {
   return Math.round(value * 100) / 100;
 }
 
-function getEqualSplitAmounts(total: number, months: number) {
+export function parseMonthlyAmounts(value: Json | null) {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const parsed = value
+    .map((item) => Number(item))
+    .filter((item) => Number.isFinite(item))
+    .map((item) => round2(item));
+
+  return parsed.length ? parsed : null;
+}
+
+export function toMonthlyAmountsJson(monthlyAmounts?: number[] | null): Json | null {
+  if (!monthlyAmounts?.length) {
+    return null;
+  }
+
+  return monthlyAmounts.map((value) => round2(value));
+}
+
+export function getEqualSplitAmounts(total: number, months: number) {
   const safeMonths = Math.max(1, months);
   const totalCents = Math.round(total * 100);
   const base = Math.floor(totalCents / safeMonths);
@@ -32,7 +52,7 @@ function getEqualSplitAmounts(total: number, months: number) {
   return Array.from({ length: safeMonths }, (_, index) => (base + (index === safeMonths - 1 ? remainder : 0)) / 100);
 }
 
-function scaleCustomAmounts(monthlyAmounts: number[], nextAmount: number) {
+export function scaleCustomAmounts(monthlyAmounts: number[], nextAmount: number) {
   const currentTotal = monthlyAmounts.reduce((sum, value) => sum + value, 0);
 
   if (currentTotal <= 0) {
@@ -51,138 +71,64 @@ function scaleCustomAmounts(monthlyAmounts: number[], nextAmount: number) {
   });
 }
 
-function normalizeEntry(raw: Partial<IncomeEntry>): IncomeEntry {
-  const splitMonths = Math.max(1, Number(raw.splitMonths) || 1);
-  const splitType = raw.splitType === "custom" ? "custom" : "equal";
-  const monthlyAmounts = Array.isArray(raw.monthlyAmounts)
-    ? raw.monthlyAmounts.map((value) => round2(Number(value) || 0)).slice(0, splitMonths)
-    : undefined;
-
-  const normalizedCustom = splitType === "custom" && monthlyAmounts && monthlyAmounts.length === splitMonths
-    ? monthlyAmounts
-    : undefined;
-
-  const amount = normalizedCustom
-    ? round2(normalizedCustom.reduce((sum, value) => sum + value, 0))
-    : round2(Number(raw.amount) || 0);
-
-  return {
-    id: raw.id || crypto.randomUUID(),
-    source: raw.source || "Untitled",
-    amount,
-    currency: raw.currency || "USD",
-    startDate: raw.startDate || new Date().toISOString(),
-    splitMonths,
-    splitType: normalizedCustom ? "custom" : "equal",
-    monthlyAmounts: normalizedCustom,
-    createdAt: raw.createdAt || new Date().toISOString(),
-  };
-}
-
-export function loadEntries(): IncomeEntry[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.map(normalizeEntry) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveEntries(entries: IncomeEntry[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-}
-
-export function addEntry(entries: IncomeEntry[], entry: Omit<IncomeEntry, "id" | "createdAt">): IncomeEntry[] {
-  const newEntry = normalizeEntry({
-    ...entry,
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-  });
-  const updated = [...entries, newEntry];
-  saveEntries(updated);
-  return updated;
-}
-
-export function updateEntry(entries: IncomeEntry[], id: string, data: Partial<Omit<IncomeEntry, "id" | "createdAt">>): IncomeEntry[] {
-  const updated = entries.map((entry) => {
-    if (entry.id !== id) {
-      return entry;
-    }
-
-    const merged = normalizeEntry({ ...entry, ...data });
-
-    if (entry.splitType === "custom" && entry.monthlyAmounts && data.amount !== undefined && data.monthlyAmounts === undefined) {
-      const scaledMonthlyAmounts = scaleCustomAmounts(entry.monthlyAmounts, Number(data.amount) || 0);
-      return normalizeEntry({
-        ...merged,
-        splitType: "custom",
-        monthlyAmounts: scaledMonthlyAmounts,
-      });
-    }
-
-    return merged;
-  });
-
-  saveEntries(updated);
-  return updated;
-}
-
-export function deleteEntry(entries: IncomeEntry[], id: string): IncomeEntry[] {
-  const updated = entries.filter((entry) => entry.id !== id);
-  saveEntries(updated);
-  return updated;
-}
-
-export function getMonthlyDistribution(entry: IncomeEntry): { month: string; amount: number }[] {
-  const start = new Date(entry.startDate);
-  const amounts = entry.splitType === "custom" && entry.monthlyAmounts?.length === entry.splitMonths
-    ? entry.monthlyAmounts
-    : getEqualSplitAmounts(entry.amount, entry.splitMonths);
+export function getMonthlyDistribution(entry: IncomeEntry) {
+  const baseDate = new Date(`${entry.date}T00:00:00`);
+  const customAmounts = parseMonthlyAmounts(entry.monthly_amounts);
+  const amounts = entry.split_type === "custom" && customAmounts?.length === entry.split_months
+    ? customAmounts
+    : getEqualSplitAmounts(entry.amount, entry.split_months);
 
   return amounts.map((amount, index) => {
-    const date = new Date(start.getFullYear(), start.getMonth() + index, 1);
-    const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-
+    const date = new Date(baseDate.getFullYear(), baseDate.getMonth() + index, 1);
     return {
-      month,
       amount: round2(amount),
+      month: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`,
     };
   });
 }
 
-export function computeMonthlyTotals(entries: IncomeEntry[], currency?: string): MonthlyTotal[] {
-  const map = new Map<string, number>();
-  const filteredEntries = currency ? entries.filter((entry) => entry.currency === currency) : entries;
+export function filterEntriesByCategories(entries: IncomeEntry[], selectedCategoryIds: string[]) {
+  if (!selectedCategoryIds.length) {
+    return entries;
+  }
 
-  for (const entry of filteredEntries) {
+  return entries.filter((entry) => entry.category_id && selectedCategoryIds.includes(entry.category_id));
+}
+
+export function computeMonthlyTotals(entries: IncomeEntry[], currency: CurrencyCode) {
+  const map = new Map<string, number>();
+
+  for (const entry of entries) {
+    if (entry.currency !== currency) {
+      continue;
+    }
+
     for (const distribution of getMonthlyDistribution(entry)) {
       map.set(distribution.month, round2((map.get(distribution.month) || 0) + distribution.amount));
     }
   }
 
-  return Array.from(map.keys())
-    .sort()
-    .map((month) => {
-      const [year, monthIndex] = month.split("-");
-
+  return Array.from(map.entries())
+    .sort(([monthA], [monthB]) => monthA.localeCompare(monthB))
+    .map(([month, total]) => {
+      const [year, monthNumber] = month.split("-");
       return {
+        label: `${monthNames[Number(monthNumber) - 1]} ${year}`,
         month,
-        label: `${monthNames[Number(monthIndex) - 1]} ${year}`,
-        total: round2(map.get(month) || 0),
+        total: round2(total),
       };
     });
 }
 
-export function computeYearlyTotals(entries: IncomeEntry[], currency?: string) {
-  const yearlyMap = new Map<string, number>();
+export function computeYearlyTotals(entries: IncomeEntry[], currency: CurrencyCode) {
+  const map = new Map<string, number>();
 
   for (const month of computeMonthlyTotals(entries, currency)) {
     const year = month.month.slice(0, 4);
-    yearlyMap.set(year, round2((yearlyMap.get(year) || 0) + month.total));
+    map.set(year, round2((map.get(year) || 0) + month.total));
   }
 
-  return Array.from(yearlyMap.entries())
+  return Array.from(map.entries())
     .sort(([yearA], [yearB]) => yearA.localeCompare(yearB))
     .map(([year, total]) => ({ year, total: round2(total) }));
 }
