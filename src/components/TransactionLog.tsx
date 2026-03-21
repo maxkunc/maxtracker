@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency } from "@/lib/currency";
+import { DEFAULT_CURRENCY, formatCurrency } from "@/lib/currency";
 import type { IncomeEntry } from "@/lib/income";
 
 interface TransactionLogProps {
@@ -76,7 +76,6 @@ export default function TransactionLog({ categoryNames, entries, onDelete, onUpd
                     ) : (
                       <div className="min-w-36">
                         <span className="font-medium">{entry.source}</span>
-                        <p className="text-xs text-muted-foreground">{entry.currency}</p>
                       </div>
                     )}
                   </TableCell>
@@ -87,7 +86,7 @@ export default function TransactionLog({ categoryNames, entries, onDelete, onUpd
                     {editId === entry.id ? (
                       <Input type="number" value={editAmount} onChange={(event) => setEditAmount(event.target.value)} className="h-8 w-28" />
                     ) : (
-                      <span className="font-semibold text-primary">{formatCurrency(entry.amount, entry.currency as "USD" | "EUR" | "CZK")}</span>
+                      <span className="font-semibold text-primary">{formatCurrency(entry.amount, DEFAULT_CURRENCY)}</span>
                     )}
                   </TableCell>
                   <TableCell className="text-muted-foreground">{format(new Date(`${entry.date}T00:00:00`), "MMM d, yyyy")}</TableCell>

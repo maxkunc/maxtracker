@@ -6,7 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AuthCard from "@/components/AuthCard";
 import ThemeToggle from "@/components/ThemeToggle";
 import IncomeForm from "@/components/IncomeForm";
@@ -14,7 +13,7 @@ import MonthlyChart from "@/components/MonthlyChart";
 import YearlySummary from "@/components/YearlySummary";
 import TransactionLog from "@/components/TransactionLog";
 import { supabase } from "@/integrations/supabase/client";
-import { currencyOptions, formatCurrency, type CurrencyCode } from "@/lib/currency";
+import { DEFAULT_CURRENCY, formatCurrency } from "@/lib/currency";
 import {
   computeMonthlyTotals,
   computeYearlyTotals,
@@ -33,7 +32,6 @@ export default function Index() {
   const [loadingData, setLoadingData] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [entries, setEntries] = useState<IncomeEntry[]>([]);
-  const [selectedCurrency, setSelectedCurrency] = useState<CurrencyCode>("USD");
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
 
   const loadTrackerData = useCallback(async (userId: string) => {
@@ -206,13 +204,13 @@ export default function Index() {
   );
 
   const monthlyTotals = useMemo(
-    () => computeMonthlyTotals(filteredByCategories, selectedCurrency),
-    [filteredByCategories, selectedCurrency],
+    () => computeMonthlyTotals(filteredByCategories, DEFAULT_CURRENCY),
+    [filteredByCategories],
   );
 
   const yearlyTotals = useMemo(
-    () => computeYearlyTotals(filteredByCategories, selectedCurrency),
-    [filteredByCategories, selectedCurrency],
+    () => computeYearlyTotals(filteredByCategories, DEFAULT_CURRENCY),
+    [filteredByCategories],
   );
 
   const categoryNames = useMemo(
@@ -275,11 +273,11 @@ export default function Index() {
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight">IncomeFlow</h1>
-            <p className="text-sm text-muted-foreground">Track income by category, currency, and custom month splits.</p>
+            <p className="text-sm text-muted-foreground">Track income by category and custom month splits.</p>
           </div>
           <div className="ml-auto text-right">
-            <p className="text-xs text-muted-foreground">Visible total in {selectedCurrency}</p>
-            <p className="text-lg font-bold text-primary">{formatCurrency(selectedTotal, selectedCurrency)}</p>
+            <p className="text-xs text-muted-foreground">Total earnings</p>
+            <p className="text-lg font-bold text-primary">{formatCurrency(selectedTotal, DEFAULT_CURRENCY)}</p>
           </div>
           <ThemeToggle />
           <Button variant="outline" onClick={signOut}>
@@ -292,31 +290,7 @@ export default function Index() {
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-8">
         <IncomeForm categories={categories} disabled={loadingData} onAdd={handleAddEntry} onAddCategory={handleAddCategory} />
 
-        <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
-          <Card className="border-border/80 shadow-sm">
-            <CardContent className="space-y-4 p-4">
-              <div className="space-y-1">
-                <p className="flex items-center gap-2 text-sm font-medium">
-                  <Filter className="h-4 w-4 text-primary" />
-                  Dashboard currency
-                </p>
-                <p className="text-sm text-muted-foreground">Charts and yearly totals use the selected currency.</p>
-              </div>
-              <Select value={selectedCurrency} onValueChange={(value) => setSelectedCurrency(value as CurrencyCode)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  {currencyOptions.map((currency) => (
-                    <SelectItem key={currency} value={currency}>
-                      {currency}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
-
+        <div>
           <Card className="border-border/80 shadow-sm">
             <CardContent className="space-y-4 p-4">
               <div className="space-y-1">
@@ -369,10 +343,10 @@ export default function Index() {
             <TabsTrigger value="log">Transactions</TabsTrigger>
           </TabsList>
           <TabsContent value="monthly">
-            <MonthlyChart currency={selectedCurrency} data={monthlyTotals} />
+            <MonthlyChart currency={DEFAULT_CURRENCY} data={monthlyTotals} />
           </TabsContent>
           <TabsContent value="yearly">
-            <YearlySummary currency={selectedCurrency} data={yearlyTotals} />
+            <YearlySummary currency={DEFAULT_CURRENCY} data={yearlyTotals} />
           </TabsContent>
           <TabsContent value="log">
             <TransactionLog

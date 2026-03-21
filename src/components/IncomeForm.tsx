@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { currencyOptions, formatCurrency, type CurrencyCode } from "@/lib/currency";
+import { DEFAULT_CURRENCY, formatCurrency } from "@/lib/currency";
 import { getEqualSplitAmounts, type Category, type IncomeEntryInput, type SplitType } from "@/lib/income";
 
 interface IncomeFormProps {
@@ -23,7 +23,6 @@ interface IncomeFormProps {
 export default function IncomeForm({ categories, disabled, onAdd, onAddCategory }: IncomeFormProps) {
   const [source, setSource] = useState("");
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState<CurrencyCode>("USD");
   const [date, setDate] = useState<Date>();
   const [categoryId, setCategoryId] = useState("none");
   const [newCategory, setNewCategory] = useState("");
@@ -79,7 +78,7 @@ export default function IncomeForm({ categories, disabled, onAdd, onAddCategory 
     await onAdd({
       amount: numericAmount,
       categoryId: categoryId === "none" ? null : categoryId,
-      currency,
+      currency: DEFAULT_CURRENCY,
       date: format(date, "yyyy-MM-dd"),
       monthlyAmounts:
         split && splitType === "custom"
@@ -93,7 +92,6 @@ export default function IncomeForm({ categories, disabled, onAdd, onAddCategory 
 
     setSource("");
     setAmount("");
-    setCurrency("USD");
     setDate(undefined);
     setCategoryId("none");
     setSplit(false);
@@ -140,22 +138,7 @@ export default function IncomeForm({ categories, disabled, onAdd, onAddCategory 
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Currency</Label>
-              <Select value={currency} onValueChange={(value) => setCurrency(value as CurrencyCode)} disabled={disabled || submitting}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  {currencyOptions.map((code) => (
-                    <SelectItem key={code} value={code}>
-                      {code}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="grid gap-4">
             <div className="space-y-2">
               <Label>Date</Label>
               <Popover>
@@ -271,7 +254,7 @@ export default function IncomeForm({ categories, disabled, onAdd, onAddCategory 
                 {splitType === "equal" ? (
                   <div className="rounded-lg bg-background p-3 text-sm text-muted-foreground">
                     {amount
-                      ? `${formatCurrency(numericAmount / monthCount, currency)} average per month`
+                      ? `${formatCurrency(numericAmount / monthCount, DEFAULT_CURRENCY)} average per month`
                       : "Enter an amount to preview the split."}
                   </div>
                 ) : (
@@ -295,9 +278,9 @@ export default function IncomeForm({ categories, disabled, onAdd, onAddCategory 
                       ))}
                     </div>
                     <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
-                      <span className="text-muted-foreground">Assigned: {formatCurrency(customTotal, currency)}</span>
+                      <span className="text-muted-foreground">Assigned: {formatCurrency(customTotal, DEFAULT_CURRENCY)}</span>
                       <span className={cn("font-medium", customSplitValid ? "text-primary" : "text-destructive")}>
-                        Target: {formatCurrency(numericAmount, currency)}
+                        Target: {formatCurrency(numericAmount, DEFAULT_CURRENCY)}
                       </span>
                     </div>
                     {!customSplitValid && (
