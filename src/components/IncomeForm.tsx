@@ -268,7 +268,7 @@ export default function IncomeForm({ onAdd }: IncomeFormProps) {
           </div>
 
           <Button type="submit" className="w-full" disabled={!customSplitValid}>
-            <BanknoteArrowDown className="mr-2 h-4 w-4" />
+            <ArrowDownCircle className="mr-2 h-4 w-4" />
             Add Income
           </Button>
         </form>

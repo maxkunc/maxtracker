@@ -23,10 +23,14 @@ const fallbackCurrencies = [
   "CNY",
 ];
 
+const intlWithSupportedValues = Intl as typeof Intl & {
+  supportedValuesOf?: (key: string) => string[];
+};
+
 export const currencyOptions = (() => {
   try {
-    if (typeof Intl.supportedValuesOf === "function") {
-      return Intl.supportedValuesOf("currency").filter((code) => code.length === 3);
+    if (typeof intlWithSupportedValues.supportedValuesOf === "function") {
+      return intlWithSupportedValues.supportedValuesOf("currency").filter((code) => code.length === 3);
     }
   } catch {
     // Ignore and fall back.
