@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { addMonths, format } from "date-fns";
-import { ArrowDownCircle, CalendarIcon, Coins, EqualNot, Split } from "lucide-react";
+import { ArrowDownCircle, CalendarIcon, FolderPlus, Split } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,80 +10,92 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { currencyOptions, formatCurrency } from "@/lib/currency";
-import type { IncomeEntry } from "@/lib/income";
+import { currencyOptions, formatCurrency, type CurrencyCode } from "@/lib/currency";
+import { getEqualSplitAmounts, type Category, type IncomeEntryInput, type SplitType } from "@/lib/income";
 
 interface IncomeFormProps {
-  onAdd: (entry: Omit<IncomeEntry, "id" | "createdAt">) => void;
+  categories: Category[];
+  disabled?: boolean;
+  onAdd: (entry: IncomeEntryInput) => Promise<void>;
+  onAddCategory: (name: string) => Promise<string | void>;
 }
 
-function getEqualPreview(total: number, months: number) {
-  if (!total || months <= 0) {
-    return Array.from({ length: months }, () => "0.00");
-  }
-
-  const totalCents = Math.round(total * 100);
-  const base = Math.floor(totalCents / months);
-  const remainder = totalCents - base * months;
-
-  return Array.from({ length: months }, (_, index) => ((base + (index === months - 1 ? remainder : 0)) / 100).toFixed(2));
-}
-
-export default function IncomeForm({ onAdd }: IncomeFormProps) {
+export default function IncomeForm({ categories, disabled, onAdd, onAddCategory }: IncomeFormProps) {
   const [source, setSource] = useState("");
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState<CurrencyCode>("USD");
   const [date, setDate] = useState<Date>();
+  const [categoryId, setCategoryId] = useState("none");
+  const [newCategory, setNewCategory] = useState("");
   const [split, setSplit] = useState(false);
   const [splitMonths, setSplitMonths] = useState("3");
-  const [splitType, setSplitType] = useState<"equal" | "custom">("equal");
+  const [splitType, setSplitType] = useState<SplitType>("equal");
   const [customAmounts, setCustomAmounts] = useState<string[]>(["0.00", "0.00", "0.00"]);
+  const [submitting, setSubmitting] = useState(false);
+  const [creatingCategory, setCreatingCategory] = useState(false);
 
   const monthCount = parseInt(splitMonths, 10);
   const numericAmount = parseFloat(amount || "0");
 
   useEffect(() => {
-    if (split && splitType === "custom") {
-      setCustomAmounts(getEqualPreview(numericAmount, monthCount));
+    if (splitType === "custom") {
+      setCustomAmounts(getEqualSplitAmounts(numericAmount || 0, monthCount).map((value) => value.toFixed(2)));
     }
-  }, [split, splitType, monthCount, numericAmount]);
+  }, [splitType, monthCount]);
 
-  const monthLabels = useMemo(() => {
-    return Array.from({ length: monthCount }, (_, index) => {
-      const currentDate = date ? addMonths(date, index) : null;
-      return currentDate ? format(currentDate, "MMM yyyy") : `Month ${index + 1}`;
-    });
-  }, [date, monthCount]);
+  const monthLabels = useMemo(
+    () =>
+      Array.from({ length: monthCount }, (_, index) => {
+        const currentDate = date ? addMonths(date, index) : null;
+        return currentDate ? format(currentDate, "MMM yyyy") : `Month ${index + 1}`;
+      }),
+    [date, monthCount],
+  );
 
   const customTotal = customAmounts.reduce((sum, value) => sum + (parseFloat(value || "0") || 0), 0);
   const customSplitValid = !split || splitType === "equal" || Math.abs(customTotal - numericAmount) < 0.01;
 
-  const handleCustomAmountChange = (index: number, value: string) => {
-    setCustomAmounts((current) => current.map((item, itemIndex) => (itemIndex === index ? value : item)));
+  const handleCreateCategory = async () => {
+    if (!newCategory.trim()) {
+      return;
+    }
+
+    setCreatingCategory(true);
+    const createdId = await onAddCategory(newCategory.trim());
+    if (createdId) {
+      setCategoryId(createdId);
+      setNewCategory("");
+    }
+    setCreatingCategory(false);
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!source || !amount || !date || !customSplitValid) {
       return;
     }
 
-    onAdd({
-      source,
+    setSubmitting(true);
+    await onAdd({
       amount: numericAmount,
+      categoryId: categoryId === "none" ? null : categoryId,
       currency,
-      startDate: date.toISOString(),
+      date: format(date, "yyyy-MM-dd"),
+      monthlyAmounts:
+        split && splitType === "custom"
+          ? customAmounts.map((value) => Number((parseFloat(value || "0") || 0).toFixed(2)))
+          : null,
+      source,
       splitMonths: split ? monthCount : 1,
       splitType: split ? splitType : "equal",
-      monthlyAmounts: split && splitType === "custom"
-        ? customAmounts.map((value) => Number(parseFloat(value || "0").toFixed(2)))
-        : undefined,
     });
+    setSubmitting(false);
 
     setSource("");
     setAmount("");
     setCurrency("USD");
     setDate(undefined);
+    setCategoryId("none");
     setSplit(false);
     setSplitMonths("3");
     setSplitType("equal");
@@ -105,10 +117,11 @@ export default function IncomeForm({ onAdd }: IncomeFormProps) {
               <Label htmlFor="source">Source</Label>
               <Input
                 id="source"
-                placeholder="e.g. Salary, Contract, Rent"
+                placeholder="e.g. Salary, Freelance, Dividends"
                 value={source}
                 onChange={(event) => setSource(event.target.value)}
                 required
+                disabled={disabled || submitting}
               />
             </div>
             <div className="space-y-2">
@@ -122,6 +135,7 @@ export default function IncomeForm({ onAdd }: IncomeFormProps) {
                 value={amount}
                 onChange={(event) => setAmount(event.target.value)}
                 required
+                disabled={disabled || submitting}
               />
             </div>
           </div>
@@ -129,7 +143,7 @@ export default function IncomeForm({ onAdd }: IncomeFormProps) {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Currency</Label>
-              <Select value={currency} onValueChange={setCurrency}>
+              <Select value={currency} onValueChange={(value) => setCurrency(value as CurrencyCode)} disabled={disabled || submitting}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select currency" />
                 </SelectTrigger>
@@ -142,14 +156,15 @@ export default function IncomeForm({ onAdd }: IncomeFormProps) {
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
-              <Label>Start Date</Label>
+              <Label>Date</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
+                    type="button"
                     variant="outline"
                     className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}
+                    disabled={disabled || submitting}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {date ? format(date, "PPP") : "Pick a date"}
@@ -168,6 +183,45 @@ export default function IncomeForm({ onAdd }: IncomeFormProps) {
             </div>
           </div>
 
+          <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Select value={categoryId} onValueChange={setCategoryId} disabled={disabled || submitting}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Uncategorized</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2 lg:min-w-64">
+              <Label htmlFor="new-category">New category</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="new-category"
+                  placeholder="e.g. Remote work"
+                  value={newCategory}
+                  onChange={(event) => setNewCategory(event.target.value)}
+                  disabled={disabled || submitting || creatingCategory}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCreateCategory}
+                  disabled={!newCategory.trim() || disabled || submitting || creatingCategory}
+                >
+                  <FolderPlus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
           <div className="rounded-xl border border-border bg-muted/30 p-4">
             <div className="flex items-center justify-between gap-4">
               <div className="space-y-1">
@@ -177,11 +231,9 @@ export default function IncomeForm({ onAdd }: IncomeFormProps) {
                     Split Across Months
                   </Label>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Default is full income in the start month.
-                </p>
+                <p className="text-sm text-muted-foreground">By default, income counts fully in the selected date month.</p>
               </div>
-              <Switch id="split-toggle" checked={split} onCheckedChange={setSplit} />
+              <Switch id="split-toggle" checked={split} onCheckedChange={setSplit} disabled={disabled || submitting} />
             </div>
 
             {split && (
@@ -189,7 +241,7 @@ export default function IncomeForm({ onAdd }: IncomeFormProps) {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Duration</Label>
-                    <Select value={splitMonths} onValueChange={setSplitMonths}>
+                    <Select value={splitMonths} onValueChange={setSplitMonths} disabled={disabled || submitting}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -202,10 +254,9 @@ export default function IncomeForm({ onAdd }: IncomeFormProps) {
                       </SelectContent>
                     </Select>
                   </div>
-
                   <div className="space-y-2">
-                    <Label>Split Type</Label>
-                    <Select value={splitType} onValueChange={(value: "equal" | "custom") => setSplitType(value)}>
+                    <Label>Split type</Label>
+                    <Select value={splitType} onValueChange={(value) => setSplitType(value as SplitType)} disabled={disabled || submitting}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -218,48 +269,39 @@ export default function IncomeForm({ onAdd }: IncomeFormProps) {
                 </div>
 
                 {splitType === "equal" ? (
-                  <div className="rounded-lg bg-background p-3">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Coins className="h-4 w-4 text-primary" />
-                      {amount
-                        ? `${formatCurrency(numericAmount / monthCount, currency)} average per month`
-                        : "Enter an amount to preview the monthly split."}
-                    </div>
+                  <div className="rounded-lg bg-background p-3 text-sm text-muted-foreground">
+                    {amount
+                      ? `${formatCurrency(numericAmount / monthCount, currency)} average per month`
+                      : "Enter an amount to preview the split."}
                   </div>
                 ) : (
                   <div className="space-y-3 rounded-lg bg-background p-3">
-                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                      <EqualNot className="h-4 w-4 text-primary" />
-                      Customize each month
-                    </div>
-
                     <div className="grid gap-3">
                       {monthLabels.map((label, index) => (
-                        <div key={label} className="grid gap-2 sm:grid-cols-[1fr_180px] sm:items-center">
+                        <div key={label} className="grid gap-2 sm:grid-cols-[1fr_160px] sm:items-center">
                           <span className="text-sm text-muted-foreground">{label}</span>
                           <Input
                             type="number"
                             min="0"
                             step="0.01"
                             value={customAmounts[index] || "0.00"}
-                            onChange={(event) => handleCustomAmountChange(index, event.target.value)}
+                            onChange={(event) => {
+                              const next = event.target.value;
+                              setCustomAmounts((current) => current.map((item, itemIndex) => (itemIndex === index ? next : item)));
+                            }}
+                            disabled={disabled || submitting}
                           />
                         </div>
                       ))}
                     </div>
-
                     <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
-                      <span className="text-muted-foreground">
-                        Assigned total: {formatCurrency(customTotal, currency)}
-                      </span>
-                      <span className={cn("font-medium", customSplitValid ? "text-success" : "text-destructive")}>
+                      <span className="text-muted-foreground">Assigned: {formatCurrency(customTotal, currency)}</span>
+                      <span className={cn("font-medium", customSplitValid ? "text-primary" : "text-destructive")}>
                         Target: {formatCurrency(numericAmount, currency)}
                       </span>
                     </div>
                     {!customSplitValid && (
-                      <p className="text-sm text-destructive">
-                        Custom month amounts must add up exactly to the total income.
-                      </p>
+                      <p className="text-sm text-destructive">Custom month amounts must match the total amount exactly.</p>
                     )}
                   </div>
                 )}
@@ -267,9 +309,9 @@ export default function IncomeForm({ onAdd }: IncomeFormProps) {
             )}
           </div>
 
-          <Button type="submit" className="w-full" disabled={!customSplitValid}>
+          <Button type="submit" className="w-full" disabled={disabled || submitting || !customSplitValid}>
             <ArrowDownCircle className="mr-2 h-4 w-4" />
-            Add Income
+            {submitting ? "Saving..." : "Add Income"}
           </Button>
         </form>
       </CardContent>
