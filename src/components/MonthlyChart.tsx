@@ -1,15 +1,17 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp } from "lucide-react";
+import { formatCurrency } from "@/lib/currency";
 import type { MonthlyTotal } from "@/lib/income";
 
 interface MonthlyChartProps {
   data: MonthlyTotal[];
+  currency: string;
 }
 
-export default function MonthlyChart({ data }: MonthlyChartProps) {
+export default function MonthlyChart({ data, currency }: MonthlyChartProps) {
   return (
-    <Card className="animate-fade-in">
+    <Card className="animate-fade-in border-border/80 shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <TrendingUp className="h-5 w-5 text-primary" />
@@ -18,7 +20,7 @@ export default function MonthlyChart({ data }: MonthlyChartProps) {
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
-          <p className="py-8 text-center text-muted-foreground">No income data yet. Add your first entry above.</p>
+          <p className="py-8 text-center text-muted-foreground">No income data yet for {currency}. Add an entry or switch currency.</p>
         ) : (
           <div className="space-y-6">
             <div className="h-64">
@@ -34,7 +36,7 @@ export default function MonthlyChart({ data }: MonthlyChartProps) {
                       borderRadius: "var(--radius)",
                       fontSize: 13,
                     }}
-                    formatter={(value: number) => [`$${value.toLocaleString()}`, "Income"]}
+                    formatter={(value: number) => [formatCurrency(value, currency), "Income"]}
                   />
                   <Bar dataKey="total" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
                 </BarChart>
@@ -42,10 +44,10 @@ export default function MonthlyChart({ data }: MonthlyChartProps) {
             </div>
 
             <div className="space-y-2">
-              {data.map((m) => (
-                <div key={m.month} className="flex items-center justify-between rounded-md px-3 py-2 hover:bg-muted/50 transition-colors">
-                  <span className="text-sm font-medium">{m.label}</span>
-                  <span className="text-sm font-semibold text-primary">${m.total.toLocaleString()}</span>
+              {data.map((month) => (
+                <div key={month.month} className="flex items-center justify-between rounded-md px-3 py-2 transition-colors hover:bg-muted/50">
+                  <span className="text-sm font-medium">{month.label}</span>
+                  <span className="text-sm font-semibold text-primary">{formatCurrency(month.total, currency)}</span>
                 </div>
               ))}
             </div>
