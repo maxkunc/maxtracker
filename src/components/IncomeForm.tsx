@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { addMonths, format } from "date-fns";
-import { BanknoteArrowDown, CalendarIcon, Coins, EqualNot, Split } from "lucide-react";
+import { ArrowDownCircle, CalendarIcon, Coins, EqualNot, Split } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
