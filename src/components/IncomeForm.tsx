@@ -94,7 +94,7 @@ export default function IncomeForm({ onAdd }: IncomeFormProps) {
     <Card className="animate-fade-in border-border/80 shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          <BanknoteArrowDown className="h-5 w-5 text-primary" />
+          <ArrowDownCircle className="h-5 w-5 text-primary" />
           Add Income
         </CardTitle>
       </CardHeader>
