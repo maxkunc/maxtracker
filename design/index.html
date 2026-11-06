@@ -1182,18 +1182,22 @@
       const button = document.getElementById("google");
       button.disabled = true;
       authNote.textContent = "";
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: appReturnUrl(),
+          skipBrowserRedirect: true,
           queryParams: { prompt: "select_account" }
         }
       });
-      if (error) {
+      if (error || !data?.url) {
         button.disabled = false;
-        authNote.textContent = error.message;
-        toast("Could not open Gmail", error.message);
+        const message = error?.message || "Gmail sign-up is not available yet.";
+        authNote.textContent = message;
+        toast("Could not open Gmail", message);
+        return;
       }
+      window.location.assign(data.url);
     });
 
     document.getElementById("auth-signin").addEventListener("click", () => setAuthMode("signin"));
