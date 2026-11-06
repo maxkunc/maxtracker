@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IncomeFlow — This month</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+  <style>
+:root {
+      --ink: #ffffff;
+      --muted: rgba(255, 255, 255, 0.72);
+      --line: rgba(255, 255, 255, 0.16);
+      --radius: 8px;
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-family: "DM Sans", system-ui, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(0deg, #ff9a3c 0%, #ff5a2a 12%, #e23a32 26%, #5a1420 42%, #000 58%);
+      background-attachment: fixed;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    :focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+    .num, .figure, .money, .year-total strong, .amount, .m-amt, .slice b {
+      font-family: "DM Sans", system-ui, sans-serif;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.045em;
+    }
+
+    .wrap { width: min(1120px, calc(100% - 32px)); margin: 0 auto; }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: none;
+      border-bottom: 1px solid #fff;
+    }
+    h1, h2, .source, .card h2 { letter-spacing: -0.045em; }
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 0;
+    }
+    h1 { margin: 0; font-size: 1.35rem; letter-spacing: -0.04em; }
+    .sub { margin: 2px 0 0; color: var(--muted); font-size: 0.875rem; }
+    .header-tools { display: flex; align-items: center; gap: 14px; }
+    .year-total { text-align: right; }
+    .year-total span {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .year-total strong { font-size: 1.15rem; }
+    .profile { position: relative; }
+    .avatar {
+      border: 0;
+      background: transparent;
+      color: white;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      padding: 0;
+    }
+    .profile-panel {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 10px);
+      width: min(260px, 80vw);
+      background: #1a0e10;
+      border: 0;
+      padding: 16px;
+      z-index: 6;
+    }
+    .profile-name { margin: 0; font-weight: 700; }
+    .profile-label {
+      margin: 14px 0 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .page { flex: 1; }
+    footer {
+      color: #1a0c10;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      border-top: 1px solid rgba(26, 12, 16, 0.45);
+    }
+    .footer-inner { padding: 18px 0 28px; }
+
+    main {
+      display: grid;
+      gap: 18px;
+      padding: 8px 0 36px;
+    }
+
+    .months {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 18px;
+      overflow-x: auto;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #fff;
+      scrollbar-width: none;
+    }
+    .months::-webkit-scrollbar { display: none; }
+    .months button {
+      flex: none;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 0 18px 0 0;
+      text-align: left;
+    }
+    .months button[aria-selected="true"] { color: white; }
+    .months .m-name { display: block; font-size: 0.95rem; font-weight: 700; letter-spacing: -0.03em; }
+    .months .m-amt { display: block; margin-top: 2px; font-size: 0.75rem; color: var(--muted); }
+    .months button[aria-selected="true"] .m-amt { color: white; }
+    .months[aria-label="Year"] { padding-bottom: 10px; margin-bottom: 12px; }
+    .months[aria-label="Year"] .m-name { font-size: 0.78rem; }
+    .months[aria-label="Year"] .m-amt { font-size: 0.65rem; }
+
+    .hero {
+      padding: 8px 0 0;
+      background: none;
+    }
+    .eyebrow {
+      margin: 0 0 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.78);
+    }
+    .figure {
+      margin: 0;
+      font-size: clamp(3.2rem, 8vw, 5.2rem);
+      line-height: 0.9;
+      letter-spacing: -0.06em;
+      color: white;
+    }
+    .figure.flash { animation: flash 700ms ease; }
+    @keyframes flash { from { opacity: 0.45; } to { opacity: 1; } }
+    .meaning { margin: 14px 0 0; max-width: 38ch; line-height: 1.45; min-height: 2.9em; color: rgba(255, 255, 255, 0.88); }
+    .pace { margin: 8px 0 0; color: rgba(255, 255, 255, 0.72); font-size: 0.92rem; }
+    .prompt {
+      margin-top: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .prompt p { margin: 0; font-weight: 600; line-height: 1.35; }
+    .submit {
+      border: 0;
+      background: none;
+      color: #fff;
+      font-weight: 700;
+      text-align: left;
+      padding: 0;
+    }
+
+    .list-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin: 0 0 10px;
+      padding-top: 18px;
+      border-top: 1px solid #fff;
+    }
+    .list-head h2 { margin: 0; font-size: 1.15rem; letter-spacing: -0.03em; }
+    .list-head span { color: var(--muted); font-size: 0.8125rem; }
+
+    .ledger { background: none; border: 0; padding: 0; }
+    .entry {
+      width: 100%;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px 12px;
+      padding: 14px 0;
+      border-top: 1px solid var(--line);
+    }
+    .entry:first-child { border-top: 0; }
+    .entry-main { min-width: 0; }
+    .entry-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .source { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .meta { margin: 4px 0 0; color: var(--muted); font-size: 0.8rem; }
+    .money { color: white; text-align: right; padding-top: 2px; }
+    .meta .text-btn { margin-left: 8px; }
+    .text-btn { border: 0; background: transparent; color: var(--muted); padding: 0; font-size: 0.8rem; }
+    .text-btn.danger:hover { color: #fff; }
+    .text-btn:hover { color: white; }
+    .badge {
+      display: inline-flex;
+      background: none;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 0;
+      flex: none;
+    }
+    .split-detail {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 8px;
+    }
+    .slice { padding: 0; background: none; }
+    .slice.here b { color: white; }
+    .slice b { display: block; }
+    .slice span { color: var(--muted); font-size: 0.75rem; }
+    .empty { margin: 12px 4px; color: var(--muted); }
+
+    .card {
+      background: none;
+      border: 0;
+      border-top: 1px solid #fff;
+      margin-top: 8px;
+      padding: 22px 0 0;
+    }
+    .card h2 { margin: 0; font-size: 1.45rem; letter-spacing: -0.04em; }
+    .card .help { margin: 6px 0 16px; color: var(--muted); font-size: 0.9rem; line-height: 1.45; }
+    label { display: block; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; }
+    label:first-of-type { margin-top: 0; }
+    input[type="text"], input[type="number"], input[type="date"] {
+      width: 100%;
+      height: 48px;
+      border: 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+      background: transparent;
+      border-radius: 0;
+      padding: 0;
+    }
+    input::placeholder { color: #6e7788; }
+    .amount { height: 64px; font-size: 1.8rem; color: white; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .chips input[type="text"] { width: 150px; height: 36px; }
+    .chip {
+      border: 0;
+      background: none;
+      padding: 0 16px 0 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+      opacity: 0.4;
+    }
+    .chip-add {
+      width: auto;
+      height: auto;
+      padding: 0;
+      display: inline-grid;
+      place-items: center;
+      opacity: 0.7;
+    }
+    .chip[aria-pressed="true"] { background: none; color: #fff; opacity: 1; }
+    .spread {
+      display: block;
+      margin-top: 16px;
+      width: auto;
+      border: 0;
+      text-align: left;
+      padding: 0;
+      font-size: 0.8rem;
+      font-weight: 700;
+      background: none;
+      color: white;
+    }
+    .spread-panel { margin-top: 12px; }
+    .segmented { display: flex; gap: 14px; padding: 0; background: none; }
+    .segmented button {
+      flex: none;
+      border: 0;
+      background: none;
+      padding: 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    .segmented button[aria-pressed="true"],
+    .profile-panel .segmented button[aria-pressed="true"] { background: none; color: white; }
+    .preview { margin: 10px 0 0; font-size: 0.875rem; line-height: 1.4; color: #fff; }
+    .preview.warn, .form-note { color: #fff; }
+    .month-inputs { display: grid; gap: 8px; margin-top: 10px; }
+    .month-inputs label { margin: 0; }
+    .month-inputs input { height: 40px; }
+    .submit { display: block; margin-top: 14px; width: auto; height: auto; font-size: 1rem; }
+    .submit:disabled { background: none; color: #fff; opacity: 0.35; cursor: not-allowed; }
+    .form-note { min-height: 1.2em; margin: 8px 0 0; font-size: 0.8125rem; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%) translateY(12px);
+      background: #1a0e10;
+      border: 0;
+      padding: 12px 14px;
+      min-width: min(280px, calc(100% - 32px));
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast strong { display: block; }
+    .toast span { color: var(--muted); font-size: 0.875rem; }
+
+    @media (max-width: 720px) {
+      .sub { display: none; }
+      .year-total strong { font-size: 1rem; }
+    }
+    @media (min-width: 768px) {
+      .wrap { width: min(1120px, calc(100% - 48px)); }
+      main { gap: 22px; padding-top: 12px; }
+    }
+    @media (min-width: 1024px) {
+      main {
+        grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.78fr);
+        align-items: start;
+        gap: 28px;
+      }
+      .card {
+        position: sticky;
+        top: 92px;
+        border-top: 0;
+        border-left: 1px solid #fff;
+        margin-top: 0;
+        padding: 8px 0 0 28px;
+      }
+    }
+
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap header-inner">
+      <div>
+        <h1>IncomeFlow</h1>
+        <p class="sub">What counts this month.</p>
+      </div>
+      <div class="header-tools">
+        <div class="year-total">
+          <span id="year-label">2026 total</span>
+          <strong id="year-total" class="num"></strong>
+        </div>
+        <div class="profile">
+          <button type="button" class="avatar" id="profile-btn" aria-expanded="false" aria-haspopup="dialog" aria-controls="profile-panel">MK</button>
+          <div class="profile-panel" id="profile-panel" role="dialog" aria-label="Profile settings" hidden>
+            <p class="profile-name">Maxmilian Kunc</p>
+            <p class="profile-label" id="currency-label">Currency</p>
+            <div class="segmented" id="currency-choices" role="group" aria-labelledby="currency-label"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap page">
+    <main>
+      <section id="month" aria-live="polite"></section>
+      <section class="card">
+        <h2>Log income</h2>
+        <p class="help">It counts in the month of the date, unless you spread it.</p>
+        <form id="log">
+          <label for="amount">Amount</label>
+          <input id="amount" class="amount" name="amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required />
+
+          <label for="source">Source</label>
+          <input id="source" name="source" type="text" placeholder="Where it came from" required />
+
+          <label id="cat-label">Category</label>
+          <div class="chips" id="chips" role="group" aria-labelledby="cat-label"></div>
+
+          <label for="date">Date</label>
+          <input id="date" name="date" type="date" required />
+
+          <button type="button" class="spread" id="spread-toggle" aria-expanded="false">Spread across months</button>
+          <div class="spread-panel" id="spread-panel" hidden>
+            <div class="segmented" id="durations" role="group" aria-label="Duration"></div>
+            <div class="segmented" id="split-type" role="group" aria-label="Split type" style="margin-top:8px"></div>
+            <div class="month-inputs" id="custom-months" hidden></div>
+            <p class="preview" id="split-preview"></p>
+          </div>
+
+          <button class="submit" id="submit" type="submit">Add income</button>
+          <p class="form-note" id="form-note"></p>
+        </form>
+      </section>
+    </main>
+  </div>
+  <footer>
+    <div class="wrap footer-inner">© 2026 Maxmilian Kunc</div>
+  </footer>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    const TODAY = "2026-11-06";
+    const CURRENCIES = ["CZK", "EUR", "USD"];
+
+    const state = {
+      currency: "CZK",
+      categories: ["Salary", "Freelance", "Dividends"],
+      category: "Freelance",
+      viewMonth: "2026-11",
+      openId: null,
+      flash: false,
+      entries: [
+        { id: "brand", source: "Brand system", category: "Freelance", amount: 90000, date: "2026-09-15", splitMonths: 3, splitType: "equal" },
+        { id: "sep-salary", source: "September salary", category: "Salary", amount: 68000, date: "2026-09-30", splitMonths: 1, splitType: "equal" },
+        { id: "oct-div", source: "Dividend payout", category: "Dividends", amount: 3150, date: "2026-10-03", splitMonths: 1, splitType: "equal" },
+        { id: "workshop", source: "Workshop", category: "Freelance", amount: 18500, date: "2026-10-12", splitMonths: 1, splitType: "equal" },
+        { id: "oct-salary", source: "October salary", category: "Salary", amount: 68000, date: "2026-10-28", splitMonths: 1, splitType: "equal" },
+        { id: "nov-div", source: "Dividend payout", category: "Dividends", amount: 3150, date: "2026-11-02", splitMonths: 1, splitType: "equal" },
+        { id: "retainer", source: "Studio retainer", category: "Freelance", amount: 42000, date: "2026-11-04", splitMonths: 1, splitType: "equal" }
+      ]
+    };
+
+    const form = {
+      spread: false,
+      months: 3,
+      type: "equal",
+      custom: []
+    };
+
+    const monthEl = document.getElementById("month");
+    const chipsEl = document.getElementById("chips");
+    const amountEl = document.getElementById("amount");
+    const sourceEl = document.getElementById("source");
+    const dateEl = document.getElementById("date");
+    const spreadToggle = document.getElementById("spread-toggle");
+    const spreadPanel = document.getElementById("spread-panel");
+    const durationsEl = document.getElementById("durations");
+    const typeEl = document.getElementById("split-type");
+    const customEl = document.getElementById("custom-months");
+    const previewEl = document.getElementById("split-preview");
+    const submitEl = document.getElementById("submit");
+    const noteEl = document.getElementById("form-note");
+    const toastEl = document.getElementById("toast");
+
+    dateEl.value = TODAY;
+
+    function money(n) {
+      const value = Math.round(n * 100) / 100;
+      const format = new Intl.NumberFormat("cs-CZ", {
+        style: "currency",
+        currency: state.currency,
+        maximumFractionDigits: Number.isInteger(value) ? 0 : 2
+      });
+      return format.format(value);
+    }
+    function yearTotal(year) {
+      let sum = 0;
+      for (let month = 1; month <= 12; month++) {
+        sum += monthTotal(year + "-" + String(month).padStart(2, "0"));
+      }
+      return round2(sum);
+    }
+    function renderYear() {
+      const year = (state.viewMonth || TODAY).slice(0, 4);
+      document.getElementById("year-label").textContent = year + " total";
+      document.getElementById("year-total").textContent = money(yearTotal(year));
+    }
+    function monthKey(iso) { return iso.slice(0, 7); }
+    function addMonths(ym, n) {
+      const [y, m] = ym.split("-").map(Number);
+      const d = new Date(y, m - 1 + n, 1);
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+    }
+    function monthDate(ym) {
+      const [y, m] = ym.split("-").map(Number);
+      return new Date(y, m - 1, 1);
+    }
+    function formatMonth(ym, options) {
+      return new Intl.DateTimeFormat(undefined, options).format(monthDate(ym));
+    }
+    function formatDay(iso) {
+      const [y, m, d] = iso.split("-").map(Number);
+      return new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "short" }).format(new Date(y, m - 1, d));
+    }
+    function weekday(iso) {
+      const [y, m, d] = iso.split("-").map(Number);
+      return new Intl.DateTimeFormat(undefined, { weekday: "long" }).format(new Date(y, m - 1, d));
+    }
+    function round2(n) { return Math.round(n * 100) / 100; }
+
+    function parts(entry) {
+      const start = monthKey(entry.date);
+      const n = entry.splitMonths > 1 ? entry.splitMonths : 1;
+      if (n === 1) return [{ month: start, amount: entry.amount }];
+      if (entry.splitType === "custom" && Array.isArray(entry.monthlyAmounts)) {
+        return entry.monthlyAmounts.map((amount, i) => ({ month: addMonths(start, i), amount: round2(amount) }));
+      }
+      const each = round2(entry.amount / n);
+      const rows = [];
+      let used = 0;
+      for (let i = 0; i < n; i++) {
+        const amount = i === n - 1 ? round2(entry.amount - used) : each;
+        used = round2(used + amount);
+        rows.push({ month: addMonths(start, i), amount });
+      }
+      return rows;
+    }
+
+    function monthTotal(ym) {
+      return round2(state.entries.reduce((sum, entry) => {
+        const hit = parts(entry).find((part) => part.month === ym);
+        return sum + (hit ? hit.amount : 0);
+      }, 0));
+    }
+
+    function yearsShown() {
+      const years = new Set([TODAY.slice(0, 4)]);
+      state.entries.forEach((entry) => parts(entry).forEach((part) => years.add(part.month.slice(0, 4))));
+      return [...years].sort();
+    }
+
+    function monthsShown() {
+      const keys = new Set([TODAY.slice(0, 7)]);
+      state.entries.forEach((entry) => parts(entry).forEach((part) => keys.add(part.month)));
+      return [...keys].sort();
+    }
+
+    function el(tag, attrs, children) {
+      const node = document.createElement(tag);
+      Object.entries(attrs || {}).forEach(([key, value]) => {
+        if (key === "class") node.className = value;
+        else if (key.startsWith("on") && typeof value === "function") node.addEventListener(key.slice(2), value);
+        else if (value != null && value !== false) node.setAttribute(key, value === true ? "" : value);
+      });
+      (children || []).forEach((child) => node.append(child instanceof Node ? child : document.createTextNode(String(child))));
+      return node;
+    }
+
+    function listSentence(items) {
+      if (items.length === 1) return items[0];
+      if (items.length === 2) return items[0] + " and " + items[1];
+      return items.slice(0, -1).join(", ") + ", and " + items[items.length - 1];
+    }
+
+    function renderMonth() {
+      const ym = state.viewMonth;
+      const total = monthTotal(ym);
+      const rows = state.entries
+        .map((entry) => ({ entry, part: parts(entry).find((part) => part.month === ym) }))
+        .filter((row) => row.part)
+        .sort((a, b) => b.entry.date.localeCompare(a.entry.date));
+      const shared = rows.filter((row) => row.entry.splitMonths > 1);
+      const sharedSum = round2(shared.reduce((sum, row) => sum + row.part.amount, 0));
+
+      monthEl.replaceChildren();
+      const viewYear = ym.slice(0, 4);
+      const years = el("div", { class: "months", role: "tablist", "aria-label": "Year" });
+      yearsShown().forEach((year) => {
+        const selected = year === viewYear;
+        years.append(el("button", {
+          type: "button",
+          role: "tab",
+          "aria-selected": selected ? "true" : "false",
+          onclick: () => {
+            if (ym.startsWith(year)) return;
+            const inYear = monthsShown().filter((key) => key.startsWith(year));
+            state.viewMonth = inYear.at(-1) || year + "-01";
+            state.openId = null;
+            renderMonth();
+          }
+        }, [
+          el("span", { class: "m-name" }, [year]),
+          el("span", { class: "m-amt" }, [money(yearTotal(year))])
+        ]));
+      });
+      monthEl.append(years);
+      const switcher = el("div", { class: "months", role: "tablist", "aria-label": "Month" });
+      monthsShown().filter((key) => key.startsWith(viewYear)).forEach((key) => {
+        const selected = key === ym;
+        switcher.append(el("button", {
+          type: "button",
+          role: "tab",
+          "aria-selected": selected ? "true" : "false",
+          onclick: () => { state.viewMonth = key; state.openId = null; renderMonth(); }
+        }, [
+          el("span", { class: "m-name" }, [formatMonth(key, { month: "long" })]),
+          el("span", { class: "m-amt" }, [money(monthTotal(key))])
+        ]));
+      });
+      monthEl.append(switcher);
+
+      const hero = el("section", { class: "hero" });
+      hero.append(el("p", { class: "eyebrow" }, [formatMonth(ym, { month: "long", year: "numeric" })]));
+      const figure = el("p", { class: state.flash ? "figure flash num" : "figure num" }, [money(total)]);
+      hero.append(figure);
+      state.flash = false;
+
+      let meaning = "Nothing counts in this month yet.";
+      if (rows.length && shared.length) {
+        const names = shared.map((row) => row.entry.source);
+        meaning = money(sharedSum) + " is " + listSentence(names) + ", shared with other months.";
+      } else if (rows.length) {
+        meaning = "Everything here was logged in " + formatMonth(ym, { month: "long" }) + ".";
+      }
+      hero.append(el("p", { class: "meaning" }, [meaning]));
+      monthEl.append(hero);
+
+      const head = el("div", { class: "list-head" }, [
+        el("h2", {}, ["Counted in " + formatMonth(ym, { month: "long" })]),
+        el("span", {}, [rows.length ? rows.length + (rows.length === 1 ? " entry" : " entries") : ""])
+      ]);
+      monthEl.append(head);
+
+      const ledger = el("div", { class: "ledger" });
+      if (!rows.length) {
+        ledger.append(el("p", { class: "empty" }, ["Use Log income. A payment lands here as soon as you add it."]));
+        monthEl.append(ledger);
+        renderYear();
+        return;
+      }
+
+      rows.forEach(({ entry, part }) => {
+        const open = state.openId === entry.id && entry.splitMonths > 1;
+        const button = el("div", { class: open ? "entry open" : "entry" });
+        const top = el("div", { class: "entry-top" }, [
+          el("span", { class: "badge" }, [entry.category || "Uncategorized"]),
+          el("span", { class: "source" }, [entry.source])
+        ]);
+        let meta = formatDay(entry.date);
+        if (entry.splitMonths > 1) {
+          const index = parts(entry).findIndex((item) => item.month === ym) + 1;
+          meta = "Started " + formatDay(entry.date) + " · month " + index + " of " + entry.splitMonths + " · " + money(entry.amount) + " total";
+        }
+        const metaLine = el("p", { class: "meta" }, [meta]);
+        if (entry.splitMonths > 1) {
+          metaLine.append(el("button", {
+            type: "button",
+            class: "text-btn",
+            onclick: (event) => {
+              event.stopPropagation();
+              state.openId = open ? null : entry.id;
+              renderMonth();
+            }
+          }, [open ? "Hide months" : "Months"]));
+        }
+        metaLine.append(el("button", {
+          type: "button",
+          class: "text-btn danger",
+          onclick: (event) => {
+            event.stopPropagation();
+            removeEntry(entry.id);
+          }
+        }, ["Remove"]));
+        const main = el("div", { class: "entry-main" }, [top, metaLine]);
+        if (entry.splitMonths > 1) {
+          main.addEventListener("click", () => {
+            state.openId = open ? null : entry.id;
+            renderMonth();
+          });
+          main.style.cursor = "pointer";
+        }
+        button.append(main, el("div", { class: "money num" }, [money(part.amount)]));
+        if (open) {
+          button.append(el("div", { class: "split-detail" }, parts(entry).map((item) => el("div", { class: item.month === ym ? "slice here" : "slice" }, [
+            el("b", {}, [money(item.amount)]),
+            el("span", {}, [formatMonth(item.month, { month: "long" })])
+          ]))));
+        }
+        ledger.append(button);
+      });
+      monthEl.append(ledger);
+      renderYear();
+    }
+
+    function renderChips() {
+      chipsEl.replaceChildren();
+      state.categories.forEach((name) => {
+        chipsEl.append(el("button", {
+          type: "button",
+          class: "chip",
+          "aria-pressed": state.category === name ? "true" : "false",
+          onclick: () => { state.category = name; renderChips(); }
+        }, [name]));
+      });
+      const adding = state.category === "__new";
+      const plus = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      plus.setAttribute("width", "16");
+      plus.setAttribute("height", "16");
+      plus.setAttribute("viewBox", "0 0 24 24");
+      plus.setAttribute("fill", "none");
+      plus.setAttribute("stroke", "currentColor");
+      plus.setAttribute("stroke-width", "2");
+      plus.setAttribute("stroke-linecap", "round");
+      plus.setAttribute("aria-hidden", "true");
+      const plusPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      plusPath.setAttribute("d", "M12 5v14M5 12h14");
+      plus.append(plusPath);
+      chipsEl.append(el("button", {
+        type: "button",
+        class: "chip chip-add",
+        "aria-label": "New category",
+        "aria-pressed": adding ? "true" : "false",
+        onclick: () => { state.category = "__new"; renderChips(); }
+      }, [plus]));
+      if (adding) {
+        const input = el("input", { type: "text", placeholder: "e.g. Remote work", "aria-label": "New category" });
+        input.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter") return;
+          event.preventDefault();
+          const name = input.value.trim();
+          if (!name) return;
+          if (!state.categories.includes(name)) state.categories.push(name);
+          state.category = name;
+          renderChips();
+        });
+        chipsEl.append(input);
+        input.focus();
+      }
+    }
+
+    function draftParts(amount) {
+      const start = monthKey(dateEl.value || TODAY);
+      const n = form.months;
+      if (!form.spread || !(amount > 0)) return [];
+      if (form.type === "custom") {
+        return form.custom.slice(0, n).map((value, i) => ({ month: addMonths(start, i), amount: round2(Number(value) || 0) }));
+      }
+      const each = round2(amount / n);
+      const rows = [];
+      let used = 0;
+      for (let i = 0; i < n; i++) {
+        const part = i === n - 1 ? round2(amount - used) : each;
+        used = round2(used + part);
+        rows.push({ month: addMonths(start, i), amount: part });
+      }
+      return rows;
+    }
+
+    function syncCustomLength() {
+      while (form.custom.length < form.months) form.custom.push("");
+      form.custom = form.custom.slice(0, form.months);
+    }
+
+    function renderSplitControls() {
+      spreadToggle.setAttribute("aria-expanded", form.spread ? "true" : "false");
+      spreadToggle.textContent = form.spread ? "Counting across months" : "Spread across months";
+      spreadPanel.hidden = !form.spread;
+      durationsEl.replaceChildren();
+      [2, 3, 4, 6].forEach((n) => {
+        durationsEl.append(el("button", {
+          type: "button",
+          "aria-pressed": form.months === n ? "true" : "false",
+          onclick: () => { form.months = n; syncCustomLength(); renderSplitControls(); }
+        }, [n + " mo"]));
+      });
+      typeEl.replaceChildren();
+      [["equal", "Equal split"], ["custom", "Uneven"]].forEach(([value, label]) => {
+        typeEl.append(el("button", {
+          type: "button",
+          "aria-pressed": form.type === value ? "true" : "false",
+          onclick: () => { form.type = value; syncCustomLength(); renderSplitControls(); }
+        }, [label]));
+      });
+      const showCustom = form.spread && form.type === "custom";
+      customEl.hidden = !showCustom;
+      customEl.replaceChildren();
+      if (showCustom) {
+        const start = monthKey(dateEl.value || TODAY);
+        for (let i = 0; i < form.months; i++) {
+          const input = el("input", {
+            type: "number",
+            min: "0",
+            step: "0.01",
+            placeholder: "0.00",
+            "aria-label": formatMonth(addMonths(start, i), { month: "long" })
+          });
+          input.value = form.custom[i];
+          input.addEventListener("input", () => { form.custom[i] = input.value; updateSubmit(); });
+          customEl.append(el("label", {}, [
+            formatMonth(addMonths(start, i), { month: "long" }),
+            input
+          ]));
+        }
+      }
+      updateSubmit();
+    }
+
+    function updateSubmit() {
+      const amount = Number(amountEl.value);
+      const source = sourceEl.value.trim();
+      submitEl.textContent = "Add income";
+      const planned = draftParts(amount);
+      let note = "";
+      if (form.spread && amount > 0) {
+        const names = planned.map((part) => formatMonth(part.month, { month: "long" }));
+        if (form.type === "equal") {
+          previewEl.className = "preview";
+          const same = planned.every((part) => part.amount === planned[0].amount);
+          previewEl.textContent = same
+            ? "Equal split. " + money(planned[0].amount) + " in " + listSentence(names) + "."
+            : "Equal split. " + planned.map((part) => money(part.amount) + " in " + formatMonth(part.month, { month: "long" })).join(", ") + ".";
+        } else {
+          const sum = round2(planned.reduce((total, part) => total + part.amount, 0));
+          const left = round2(amount - sum);
+          previewEl.className = left === 0 ? "preview" : "preview warn";
+          previewEl.textContent = left === 0
+            ? "These months add up to " + money(amount) + "."
+            : money(Math.abs(left)) + (left > 0 ? " still to assign." : " over the amount.");
+          if (left !== 0) note = "Custom month amounts must match the total amount exactly.";
+        }
+      } else {
+        previewEl.textContent = "";
+      }
+      if (!note && amountEl.value && !(amount > 0)) note = "Enter an amount greater than zero.";
+      noteEl.textContent = note;
+      submitEl.disabled = !(amount > 0) || !source || note !== "";
+    }
+
+    function toast(title, detail) {
+      toastEl.replaceChildren(el("strong", {}, [title]), el("span", {}, [detail]));
+      toastEl.classList.add("show");
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => toastEl.classList.remove("show"), 2800);
+    }
+
+    function removeEntry(id) {
+      const entry = state.entries.find((item) => item.id === id);
+      state.entries = state.entries.filter((item) => item.id !== id);
+      if (state.openId === id) state.openId = null;
+      renderMonth();
+      toast("Entry deleted", entry ? entry.source : "");
+    }
+
+    document.getElementById("log").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const amount = round2(Number(amountEl.value));
+      const source = sourceEl.value.trim();
+      if (!(amount > 0) || !source || submitEl.disabled) return;
+      const entry = {
+        id: "n" + Date.now(),
+        source,
+        category: state.category === "__new" ? "Uncategorized" : state.category,
+        amount,
+        date: dateEl.value || TODAY,
+        splitMonths: form.spread ? form.months : 1,
+        splitType: form.spread ? form.type : "equal"
+      };
+      if (entry.splitType === "custom") entry.monthlyAmounts = draftParts(amount).map((part) => part.amount);
+      state.entries.push(entry);
+      state.viewMonth = monthKey(entry.date);
+      state.openId = entry.splitMonths > 1 ? entry.id : null;
+      state.flash = true;
+      amountEl.value = "";
+      sourceEl.value = "";
+      form.spread = false;
+      renderSplitControls();
+      renderMonth();
+      updateSubmit();
+      amountEl.focus();
+      const landed = parts(entry)[0];
+      toast("Income saved", money(landed.amount) + " counts in " + formatMonth(landed.month, { month: "long" }) + ".");
+    });
+
+    [amountEl, sourceEl, dateEl].forEach((input) => input.addEventListener("input", () => {
+      if (input === dateEl) renderSplitControls();
+      else updateSubmit();
+    }));
+    spreadToggle.addEventListener("click", () => {
+      form.spread = !form.spread;
+      syncCustomLength();
+      renderSplitControls();
+    });
+
+    const profileBtn = document.getElementById("profile-btn");
+    const profilePanel = document.getElementById("profile-panel");
+    const currencyChoices = document.getElementById("currency-choices");
+
+    function renderCurrencies() {
+      currencyChoices.replaceChildren();
+      CURRENCIES.forEach((code) => {
+        currencyChoices.append(el("button", {
+          type: "button",
+          "aria-pressed": state.currency === code ? "true" : "false",
+          onclick: () => {
+            state.currency = code;
+            renderCurrencies();
+            renderMonth();
+            updateSubmit();
+          }
+        }, [code]));
+      });
+    }
+
+    profileBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const open = profilePanel.hidden;
+      profilePanel.hidden = !open;
+      profileBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+    document.addEventListener("click", (event) => {
+      if (profilePanel.hidden || event.target.closest(".profile")) return;
+      profilePanel.hidden = true;
+      profileBtn.setAttribute("aria-expanded", "false");
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" || profilePanel.hidden) return;
+      profilePanel.hidden = true;
+      profileBtn.setAttribute("aria-expanded", "false");
+    });
+
+    renderCurrencies();
+    renderChips();
+    renderSplitControls();
+    renderMonth();
+    updateSubmit();
+  </script>
+</body>
+</html>
