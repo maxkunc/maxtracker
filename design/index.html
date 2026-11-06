@@ -17,6 +17,7 @@
     }
 
     * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
     html, body { margin: 0; min-height: 100%; }
     body {
       min-height: 100vh;
@@ -242,7 +243,7 @@
     .card .help { margin: 6px 0 16px; color: var(--muted); font-size: 0.9rem; line-height: 1.45; }
     label { display: block; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; }
     label:first-of-type { margin-top: 0; }
-    input[type="text"], input[type="number"], input[type="date"] {
+    input[type="text"], input[type="number"], input[type="date"], input[type="email"], input[type="password"] {
       width: 100%;
       height: 48px;
       border: 0;
@@ -306,6 +307,12 @@
     .submit { display: block; margin-top: 14px; width: auto; height: auto; font-size: 1rem; }
     .submit:disabled { background: none; color: #fff; opacity: 0.35; cursor: not-allowed; }
     .form-note { min-height: 1.2em; margin: 8px 0 0; font-size: 0.8125rem; }
+    .gate { max-width: 420px; padding: 48px 0 80px; }
+    .gate h2 { margin: 0 0 8px; font-size: 1.45rem; }
+    .gate .help { margin: 0 0 18px; color: var(--muted); }
+    .gate .segmented { margin-bottom: 8px; }
+    .entry-edit { height: 36px; font-size: 1rem; }
+    .sign-out { display: block; margin-top: 16px; color: #fff; font-weight: 700; }
 
     .toast {
       position: fixed;
@@ -357,7 +364,7 @@
         <h1>IncomeFlow</h1>
         <p class="sub">What counts this month.</p>
       </div>
-      <div class="header-tools">
+      <div class="header-tools" id="header-tools" hidden>
         <div class="year-total">
           <span id="year-label">2026 total</span>
           <strong id="year-total" class="num"></strong>
@@ -365,7 +372,8 @@
         <div class="profile">
           <button type="button" class="avatar" id="profile-btn" aria-expanded="false" aria-haspopup="dialog" aria-controls="profile-panel">MK</button>
           <div class="profile-panel" id="profile-panel" role="dialog" aria-label="Profile settings" hidden>
-            <p class="profile-name">Maxmilian Kunc</p>
+            <p class="profile-name" id="profile-name"></p>
+            <button type="button" class="text-btn sign-out" id="sign-out">Sign out</button>
             <p class="profile-label" id="currency-label">Currency</p>
             <div class="segmented" id="currency-choices" role="group" aria-labelledby="currency-label"></div>
           </div>
@@ -375,7 +383,25 @@
   </header>
 
   <div class="wrap page">
-    <main>
+    <section class="gate" id="gate">
+      <h2>Sign in to IncomeFlow</h2>
+      <p class="help" id="gate-status">Loading…</p>
+      <div id="auth-box" hidden>
+        <div class="segmented" role="group" aria-label="Account">
+          <button type="button" id="auth-signin" aria-pressed="true">Sign in</button>
+          <button type="button" id="auth-signup" aria-pressed="false">Create account</button>
+        </div>
+        <form id="auth">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" required />
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" minlength="6" required />
+          <button class="submit" id="auth-submit" type="submit">Sign in</button>
+          <p class="form-note" id="auth-note"></p>
+        </form>
+      </div>
+    </section>
+    <main id="app" hidden>
       <section id="month" aria-live="polite"></section>
       <section class="card">
         <h2>Log income</h2>
@@ -412,26 +438,30 @@
   </footer>
   <div class="toast" id="toast" role="status"></div>
 
-  <script>
-    const TODAY = "2026-11-06";
+  <script type="module">
+    import { supabase } from "/src/integrations/supabase/client.ts";
+
+    function todayIso() {
+      const now = new Date();
+      return now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+    }
+
+    const TODAY = todayIso();
     const CURRENCIES = ["CZK", "EUR", "USD"];
 
     const state = {
+      userId: null,
       currency: "CZK",
-      categories: ["Salary", "Freelance", "Dividends"],
-      category: "Freelance",
-      viewMonth: "2026-11",
+      categories: [],
+      category: null,
+      viewMonth: TODAY.slice(0, 7),
       openId: null,
+      editId: null,
+      editSource: "",
+      editAmount: "",
       flash: false,
-      entries: [
-        { id: "brand", source: "Brand system", category: "Freelance", amount: 90000, date: "2026-09-15", splitMonths: 3, splitType: "equal" },
-        { id: "sep-salary", source: "September salary", category: "Salary", amount: 68000, date: "2026-09-30", splitMonths: 1, splitType: "equal" },
-        { id: "oct-div", source: "Dividend payout", category: "Dividends", amount: 3150, date: "2026-10-03", splitMonths: 1, splitType: "equal" },
-        { id: "workshop", source: "Workshop", category: "Freelance", amount: 18500, date: "2026-10-12", splitMonths: 1, splitType: "equal" },
-        { id: "oct-salary", source: "October salary", category: "Salary", amount: 68000, date: "2026-10-28", splitMonths: 1, splitType: "equal" },
-        { id: "nov-div", source: "Dividend payout", category: "Dividends", amount: 3150, date: "2026-11-02", splitMonths: 1, splitType: "equal" },
-        { id: "retainer", source: "Studio retainer", category: "Freelance", amount: 42000, date: "2026-11-04", splitMonths: 1, splitType: "equal" }
-      ]
+      saving: false,
+      entries: []
     };
 
     const form = {
@@ -502,26 +532,52 @@
     }
     function round2(n) { return Math.round(n * 100) / 100; }
 
+    function getEqualSplitAmounts(total, months) {
+      const safeMonths = Math.max(1, months);
+      const totalCents = Math.round(total * 100);
+      const base = Math.floor(totalCents / safeMonths);
+      const remainder = totalCents - base * safeMonths;
+      return Array.from({ length: safeMonths }, (_, index) => (base + (index === safeMonths - 1 ? remainder : 0)) / 100);
+    }
+
+    function scaleCustomAmounts(monthlyAmounts, nextAmount) {
+      const currentTotal = monthlyAmounts.reduce((sum, value) => sum + value, 0);
+      if (currentTotal <= 0) return getEqualSplitAmounts(nextAmount, monthlyAmounts.length || 1);
+      let runningTotal = 0;
+      return monthlyAmounts.map((value, index) => {
+        if (index === monthlyAmounts.length - 1) return round2(nextAmount - runningTotal);
+        const scaled = round2((value / currentTotal) * nextAmount);
+        runningTotal += scaled;
+        return scaled;
+      });
+    }
+
+    function parseMonthlyAmounts(value) {
+      if (!Array.isArray(value)) return null;
+      const parsed = value.map((item) => Number(item)).filter((item) => Number.isFinite(item)).map((item) => round2(item));
+      return parsed.length ? parsed : null;
+    }
+
+    function visibleEntries() {
+      return state.entries.filter((entry) => entry.currency === state.currency);
+    }
+
+    function categoryName(id) {
+      if (!id) return "Uncategorized";
+      const found = state.categories.find((category) => category.id === id);
+      return found ? found.name : "Unknown";
+    }
+
     function parts(entry) {
       const start = monthKey(entry.date);
-      const n = entry.splitMonths > 1 ? entry.splitMonths : 1;
-      if (n === 1) return [{ month: start, amount: entry.amount }];
-      if (entry.splitType === "custom" && Array.isArray(entry.monthlyAmounts)) {
-        return entry.monthlyAmounts.map((amount, i) => ({ month: addMonths(start, i), amount: round2(amount) }));
-      }
-      const each = round2(entry.amount / n);
-      const rows = [];
-      let used = 0;
-      for (let i = 0; i < n; i++) {
-        const amount = i === n - 1 ? round2(entry.amount - used) : each;
-        used = round2(used + amount);
-        rows.push({ month: addMonths(start, i), amount });
-      }
-      return rows;
+      const n = Math.max(1, entry.splitMonths || 1);
+      const custom = entry.splitType === "custom" ? parseMonthlyAmounts(entry.monthlyAmounts) : null;
+      const amounts = custom && custom.length === n ? custom : getEqualSplitAmounts(entry.amount, n);
+      return amounts.map((amount, index) => ({ month: addMonths(start, index), amount: round2(amount) }));
     }
 
     function monthTotal(ym) {
-      return round2(state.entries.reduce((sum, entry) => {
+      return round2(visibleEntries().reduce((sum, entry) => {
         const hit = parts(entry).find((part) => part.month === ym);
         return sum + (hit ? hit.amount : 0);
       }, 0));
@@ -529,13 +585,13 @@
 
     function yearsShown() {
       const years = new Set([TODAY.slice(0, 4)]);
-      state.entries.forEach((entry) => parts(entry).forEach((part) => years.add(part.month.slice(0, 4))));
+      visibleEntries().forEach((entry) => parts(entry).forEach((part) => years.add(part.month.slice(0, 4))));
       return [...years].sort();
     }
 
     function monthsShown() {
       const keys = new Set([TODAY.slice(0, 7)]);
-      state.entries.forEach((entry) => parts(entry).forEach((part) => keys.add(part.month)));
+      visibleEntries().forEach((entry) => parts(entry).forEach((part) => keys.add(part.month)));
       return [...keys].sort();
     }
 
@@ -559,7 +615,7 @@
     function renderMonth() {
       const ym = state.viewMonth;
       const total = monthTotal(ym);
-      const rows = state.entries
+      const rows = visibleEntries()
         .map((entry) => ({ entry, part: parts(entry).find((part) => part.month === ym) }))
         .filter((row) => row.part)
         .sort((a, b) => b.entry.date.localeCompare(a.entry.date));
@@ -635,10 +691,20 @@
 
       rows.forEach(({ entry, part }) => {
         const open = state.openId === entry.id && entry.splitMonths > 1;
+        const editing = state.editId === entry.id;
         const button = el("div", { class: open ? "entry open" : "entry" });
+        const sourceNode = editing
+          ? el("input", {
+            type: "text",
+            class: "entry-edit",
+            value: state.editSource,
+            "aria-label": "Source",
+            oninput: (event) => { state.editSource = event.target.value; }
+          })
+          : el("span", { class: "source" }, [entry.source]);
         const top = el("div", { class: "entry-top" }, [
-          el("span", { class: "badge" }, [entry.category || "Uncategorized"]),
-          el("span", { class: "source" }, [entry.source])
+          el("span", { class: "badge" }, [categoryName(entry.categoryId)]),
+          sourceNode
         ]);
         let meta = formatDay(entry.date);
         if (entry.splitMonths > 1) {
@@ -646,7 +712,7 @@
           meta = "Started " + formatDay(entry.date) + " · month " + index + " of " + entry.splitMonths + " · " + money(entry.amount) + " total";
         }
         const metaLine = el("p", { class: "meta" }, [meta]);
-        if (entry.splitMonths > 1) {
+        if (entry.splitMonths > 1 && !editing) {
           metaLine.append(el("button", {
             type: "button",
             class: "text-btn",
@@ -657,23 +723,63 @@
             }
           }, [open ? "Hide months" : "Months"]));
         }
-        metaLine.append(el("button", {
-          type: "button",
-          class: "text-btn danger",
-          onclick: (event) => {
-            event.stopPropagation();
-            removeEntry(entry.id);
-          }
-        }, ["Remove"]));
+        if (editing) {
+          metaLine.append(el("button", {
+            type: "button",
+            class: "text-btn",
+            onclick: (event) => { event.stopPropagation(); saveEdit(entry); }
+          }, ["Save"]));
+          metaLine.append(el("button", {
+            type: "button",
+            class: "text-btn",
+            onclick: (event) => {
+              event.stopPropagation();
+              state.editId = null;
+              renderMonth();
+            }
+          }, ["Cancel"]));
+        } else {
+          metaLine.append(el("button", {
+            type: "button",
+            class: "text-btn",
+            onclick: (event) => {
+              event.stopPropagation();
+              state.editId = entry.id;
+              state.editSource = entry.source;
+              state.editAmount = String(entry.amount);
+              state.openId = null;
+              renderMonth();
+            }
+          }, ["Edit"]));
+          metaLine.append(el("button", {
+            type: "button",
+            class: "text-btn danger",
+            onclick: (event) => {
+              event.stopPropagation();
+              removeEntry(entry.id);
+            }
+          }, ["Remove"]));
+        }
         const main = el("div", { class: "entry-main" }, [top, metaLine]);
-        if (entry.splitMonths > 1) {
+        if (entry.splitMonths > 1 && !editing) {
           main.addEventListener("click", () => {
             state.openId = open ? null : entry.id;
             renderMonth();
           });
           main.style.cursor = "pointer";
         }
-        button.append(main, el("div", { class: "money num" }, [money(part.amount)]));
+        const amountNode = editing
+          ? el("input", {
+            type: "number",
+            class: "entry-edit",
+            min: "0",
+            step: "0.01",
+            value: state.editAmount,
+            "aria-label": "Amount",
+            oninput: (event) => { state.editAmount = event.target.value; }
+          })
+          : el("div", { class: "money num" }, [money(part.amount)]);
+        button.append(main, amountNode);
         if (open) {
           button.append(el("div", { class: "split-detail" }, parts(entry).map((item) => el("div", { class: item.month === ym ? "slice here" : "slice" }, [
             el("b", {}, [money(item.amount)]),
@@ -688,13 +794,13 @@
 
     function renderChips() {
       chipsEl.replaceChildren();
-      state.categories.forEach((name) => {
+      state.categories.forEach((category) => {
         chipsEl.append(el("button", {
           type: "button",
           class: "chip",
-          "aria-pressed": state.category === name ? "true" : "false",
-          onclick: () => { state.category = name; renderChips(); }
-        }, [name]));
+          "aria-pressed": state.category === category.id ? "true" : "false",
+          onclick: () => { state.category = category.id; renderChips(); }
+        }, [category.name]));
       });
       const adding = state.category === "__new";
       const plus = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -723,9 +829,7 @@
           event.preventDefault();
           const name = input.value.trim();
           if (!name) return;
-          if (!state.categories.includes(name)) state.categories.push(name);
-          state.category = name;
-          renderChips();
+          addCategory(name);
         });
         chipsEl.append(input);
         input.focus();
@@ -739,15 +843,7 @@
       if (form.type === "custom") {
         return form.custom.slice(0, n).map((value, i) => ({ month: addMonths(start, i), amount: round2(Number(value) || 0) }));
       }
-      const each = round2(amount / n);
-      const rows = [];
-      let used = 0;
-      for (let i = 0; i < n; i++) {
-        const part = i === n - 1 ? round2(amount - used) : each;
-        used = round2(used + part);
-        rows.push({ month: addMonths(start, i), amount: part });
-      }
-      return rows;
+      return getEqualSplitAmounts(amount, n).map((part, i) => ({ month: addMonths(start, i), amount: round2(part) }));
     }
 
     function syncCustomLength() {
@@ -837,42 +933,128 @@
       toast.timer = setTimeout(() => toastEl.classList.remove("show"), 2800);
     }
 
-    function removeEntry(id) {
-      const entry = state.entries.find((item) => item.id === id);
-      state.entries = state.entries.filter((item) => item.id !== id);
-      if (state.openId === id) state.openId = null;
+    function mapEntry(row) {
+      return {
+        id: row.id,
+        source: row.source,
+        categoryId: row.category_id,
+        amount: Number(row.amount),
+        currency: row.currency,
+        date: String(row.date).slice(0, 10),
+        splitMonths: row.split_months,
+        splitType: row.split_type,
+        monthlyAmounts: parseMonthlyAmounts(row.monthly_amounts)
+      };
+    }
+
+    async function loadTracker(userId) {
+      const [categoriesResponse, entriesResponse] = await Promise.all([
+        supabase.from("categories").select("*").eq("user_id", userId).order("name"),
+        supabase.from("income_entries").select("*").eq("user_id", userId).order("date", { ascending: false })
+      ]);
+      if (categoriesResponse.error || entriesResponse.error) {
+        toast("Could not load your data", categoriesResponse.error?.message || entriesResponse.error?.message || "Please refresh and try again.");
+        return;
+      }
+      state.categories = categoriesResponse.data || [];
+      state.entries = (entriesResponse.data || []).map(mapEntry);
+      if (state.category && !state.categories.some((category) => category.id === state.category)) state.category = null;
+      renderChips();
       renderMonth();
+      updateSubmit();
+    }
+
+    async function addCategory(name) {
+      if (!state.userId) return;
+      const existing = state.categories.find((category) => category.name.toLowerCase() === name.toLowerCase());
+      if (existing) {
+        state.category = existing.id;
+        renderChips();
+        return;
+      }
+      const { data, error } = await supabase.from("categories").insert({ name, user_id: state.userId }).select("*").single();
+      if (error) {
+        toast("Could not create category", error.message);
+        return;
+      }
+      state.categories = [...state.categories, data].sort((a, b) => a.name.localeCompare(b.name));
+      state.category = data.id;
+      renderChips();
+      toast("Category added", data.name);
+    }
+
+    async function removeEntry(id) {
+      const entry = state.entries.find((item) => item.id === id);
+      const { error } = await supabase.from("income_entries").delete().eq("id", id);
+      if (error) {
+        toast("Could not delete entry", error.message);
+        return;
+      }
+      if (state.openId === id) state.openId = null;
+      if (state.editId === id) state.editId = null;
+      await loadTracker(state.userId);
       toast("Entry deleted", entry ? entry.source : "");
     }
 
-    document.getElementById("log").addEventListener("submit", (event) => {
+    async function saveEdit(entry) {
+      const source = state.editSource.trim();
+      const amount = round2(Number(state.editAmount));
+      if (!source || !(amount > 0)) {
+        toast("Could not update entry", "Enter a source and an amount greater than zero.");
+        return;
+      }
+      const payload = { source, amount };
+      if (entry.splitType === "custom" && entry.monthlyAmounts?.length) {
+        payload.monthly_amounts = scaleCustomAmounts(entry.monthlyAmounts, amount);
+      }
+      const { error } = await supabase.from("income_entries").update(payload).eq("id", entry.id);
+      if (error) {
+        toast("Could not update entry", error.message);
+        return;
+      }
+      state.editId = null;
+      await loadTracker(state.userId);
+      toast("Entry updated", source);
+    }
+
+    document.getElementById("log").addEventListener("submit", async (event) => {
       event.preventDefault();
       const amount = round2(Number(amountEl.value));
       const source = sourceEl.value.trim();
-      if (!(amount > 0) || !source || submitEl.disabled) return;
-      const entry = {
-        id: "n" + Date.now(),
-        source,
-        category: state.category === "__new" ? "Uncategorized" : state.category,
+      if (!(amount > 0) || !source || submitEl.disabled || state.saving || !state.userId) return;
+      const splitMonths = form.spread ? form.months : 1;
+      const splitType = form.spread ? form.type : "equal";
+      const monthlyAmounts = splitType === "custom" ? draftParts(amount).map((part) => part.amount) : null;
+      state.saving = true;
+      submitEl.disabled = true;
+      const { error } = await supabase.from("income_entries").insert({
         amount,
+        category_id: state.category && state.category !== "__new" ? state.category : null,
+        currency: state.currency,
         date: dateEl.value || TODAY,
-        splitMonths: form.spread ? form.months : 1,
-        splitType: form.spread ? form.type : "equal"
-      };
-      if (entry.splitType === "custom") entry.monthlyAmounts = draftParts(amount).map((part) => part.amount);
-      state.entries.push(entry);
-      state.viewMonth = monthKey(entry.date);
-      state.openId = entry.splitMonths > 1 ? entry.id : null;
+        monthly_amounts: monthlyAmounts,
+        source,
+        split_months: splitMonths,
+        split_type: splitType,
+        user_id: state.userId
+      });
+      state.saving = false;
+      if (error) {
+        toast("Could not save income", error.message);
+        updateSubmit();
+        return;
+      }
+      state.viewMonth = monthKey(dateEl.value || TODAY);
+      state.openId = null;
       state.flash = true;
       amountEl.value = "";
       sourceEl.value = "";
       form.spread = false;
       renderSplitControls();
-      renderMonth();
+      await loadTracker(state.userId);
       updateSubmit();
       amountEl.focus();
-      const landed = parts(entry)[0];
-      toast("Income saved", money(landed.amount) + " counts in " + formatMonth(landed.month, { month: "long" }) + ".");
+      toast("Income saved", money(amount) + " saved.");
     });
 
     [amountEl, sourceEl, dateEl].forEach((input) => input.addEventListener("input", () => {
@@ -922,11 +1104,106 @@
       profileBtn.setAttribute("aria-expanded", "false");
     });
 
-    renderCurrencies();
-    renderChips();
-    renderSplitControls();
-    renderMonth();
-    updateSubmit();
+    const gate = document.getElementById("gate");
+    const gateStatus = document.getElementById("gate-status");
+    const authBox = document.getElementById("auth-box");
+    const authNote = document.getElementById("auth-note");
+    const authSubmit = document.getElementById("auth-submit");
+    const emailEl = document.getElementById("email");
+    const passwordEl = document.getElementById("password");
+    const appEl = document.getElementById("app");
+    const headerTools = document.getElementById("header-tools");
+    let authMode = "signin";
+
+    function setAuthMode(mode) {
+      authMode = mode;
+      document.getElementById("auth-signin").setAttribute("aria-pressed", mode === "signin" ? "true" : "false");
+      document.getElementById("auth-signup").setAttribute("aria-pressed", mode === "signup" ? "true" : "false");
+      authSubmit.textContent = mode === "signup" ? "Create account" : "Sign in";
+      passwordEl.setAttribute("autocomplete", mode === "signup" ? "new-password" : "current-password");
+      authNote.textContent = "";
+    }
+
+    function showSignedOut(message) {
+      state.userId = null;
+      state.entries = [];
+      state.categories = [];
+      state.category = null;
+      appEl.hidden = true;
+      headerTools.hidden = true;
+      gate.hidden = false;
+      gateStatus.textContent = message || "Your income stays on your account.";
+      authBox.hidden = false;
+    }
+
+    function showSignedIn(session) {
+      const sameUser = state.userId === session.user.id && !appEl.hidden;
+      state.userId = session.user.id;
+      const email = session.user.email || "";
+      document.getElementById("profile-name").textContent = email;
+      profileBtn.textContent = email.slice(0, 2).toUpperCase() || "·";
+      if (sameUser) return;
+      gate.hidden = true;
+      authBox.hidden = true;
+      appEl.hidden = false;
+      headerTools.hidden = false;
+      renderCurrencies();
+      renderChips();
+      renderSplitControls();
+      renderMonth();
+      updateSubmit();
+      loadTracker(session.user.id);
+    }
+
+    document.getElementById("auth-signin").addEventListener("click", () => setAuthMode("signin"));
+    document.getElementById("auth-signup").addEventListener("click", () => setAuthMode("signup"));
+    document.getElementById("auth").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      authSubmit.disabled = true;
+      authNote.textContent = "";
+      const email = emailEl.value.trim();
+      const password = passwordEl.value;
+      const result = authMode === "signup"
+        ? await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: window.location.origin }
+        })
+        : await supabase.auth.signInWithPassword({ email, password });
+      authSubmit.disabled = false;
+      if (result.error) {
+        authNote.textContent = result.error.message;
+        toast(authMode === "signup" ? "Could not create account" : "Could not sign in", result.error.message);
+        return;
+      }
+      if (authMode === "signup" && !result.data.session) {
+        authNote.textContent = "Account created. Check your email if a confirmation link is required.";
+        toast("Account created", "Check your email if a confirmation link is required.");
+        return;
+      }
+      passwordEl.value = "";
+      toast(authMode === "signup" ? "Account created" : "Signed in", "Your income is ready.");
+    });
+    document.getElementById("sign-out").addEventListener("click", async () => {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        toast("Could not sign out", error.message);
+        return;
+      }
+      profilePanel.hidden = true;
+      profileBtn.setAttribute("aria-expanded", "false");
+      showSignedOut("Signed out.");
+      toast("Signed out", "");
+    });
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user?.id) showSignedIn(session);
+      else showSignedOut();
+    });
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user?.id) showSignedIn(data.session);
+      else showSignedOut();
+    });
   </script>
 </body>
 </html>

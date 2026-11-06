@@ -1,0 +1,70 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [redesign]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble the site
+        run: |
+          set -euo pipefail
+          mkdir -p _site/design
+          cp site/index.html site/privacy.html site/terms.html site/names.json _site/
+          cp -r site/assets _site/assets
+          cp design/index.html _site/design/index.html
+          python3 - <<'PY'
+          import pathlib, re
+          env = pathlib.Path(".env").read_text(encoding="utf-8")
+          def grab(key):
+              match = re.search(rf"^{key}=(.*)$", env, re.M)
+              if not match:
+                  raise SystemExit(f"missing {key}")
+              return match.group(1).strip().strip('"').strip("'")
+          url, key = grab("VITE_SUPABASE_URL"), grab("VITE_SUPABASE_PUBLISHABLE_KEY")
+          client = (
+              "import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';\n"
+              f"export const supabase = createClient({url!r}, {key!r}, "
+              "{ auth: { storage: localStorage, persistSession: true, autoRefreshToken: true } });\n"
+          )
+          pathlib.Path("_site/design/client.js").write_text(client, encoding="utf-8")
+          page = pathlib.Path("_site/design/index.html")
+          html = page.read_text(encoding="utf-8")
+          html = html.replace(
+              'from "/src/integrations/supabase/client.ts"',
+              'from "./client.js"',
+          )
+          page.write_text(html, encoding="utf-8")
+          PY
+          python3 - <<'PY'
+          import pathlib
+          root = pathlib.Path("_site")
+          for path in root.rglob("*.html"):
+              text = path.read_text(encoding="utf-8")
+              text = text.replace("http://127.0.0.1:8080/design/index.html", "design/index.html")
+              path.write_text(text, encoding="utf-8")
+          PY
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
