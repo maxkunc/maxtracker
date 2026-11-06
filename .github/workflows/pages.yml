@@ -6,9 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
@@ -17,9 +15,6 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -30,6 +25,7 @@ jobs:
           cp site/index.html site/privacy.html site/terms.html site/names.json _site/
           cp -r site/assets _site/assets
           cp design/index.html _site/design/index.html
+          touch _site/.nojekyll
           python3 - <<'PY'
           import pathlib, re
           env = pathlib.Path(".env").read_text(encoding="utf-8")
@@ -53,18 +49,14 @@ jobs:
           )
           page.write_text(html, encoding="utf-8")
           PY
-          python3 - <<'PY'
-          import pathlib
-          root = pathlib.Path("_site")
-          for path in root.rglob("*.html"):
-              text = path.read_text(encoding="utf-8")
-              text = text.replace("http://127.0.0.1:8080/design/index.html", "design/index.html")
-              path.write_text(text, encoding="utf-8")
-          PY
 
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Publish the gh-pages branch
+        run: |
+          set -euo pipefail
+          cd _site
+          git init
+          git add -A
+          git -c user.name="Maxmilian Kunc" -c user.email="maxkunc@users.noreply.github.com" commit -m "Publish the landing page and tracker."
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:gh-pages
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
