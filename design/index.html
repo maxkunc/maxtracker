@@ -25,9 +25,16 @@
       flex-direction: column;
       font-family: "DM Sans", system-ui, sans-serif;
       color: var(--ink);
-      background: linear-gradient(0deg, #ff9a3c 0%, #ff5a2a 12%, #e23a32 26%, #5a1420 42%, #000 58%);
-      background-attachment: fixed;
+      background: #000;
       -webkit-font-smoothing: antialiased;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background: linear-gradient(0deg, #ff9a3c 0%, #ff5a2a 12%, #e23a32 26%, #5a1420 42%, #000 58%);
+      pointer-events: none;
     }
     button, input { font: inherit; color: inherit; }
     button { cursor: pointer; }
@@ -109,33 +116,62 @@
 
     main {
       display: grid;
+      grid-template-columns: minmax(0, 1fr);
       gap: 18px;
       padding: 8px 0 36px;
     }
+    #month { min-width: 0; }
 
     .months {
-      display: flex;
-      gap: 8px;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 12px 8px;
       margin-bottom: 18px;
-      overflow-x: auto;
       padding-bottom: 14px;
       border-bottom: 1px solid #fff;
-      scrollbar-width: none;
     }
-    .months::-webkit-scrollbar { display: none; }
     .months button {
-      flex: none;
+      min-width: 0;
       border: 0;
       background: transparent;
       color: var(--muted);
-      padding: 0 18px 0 0;
+      padding: 4px 0;
       text-align: left;
     }
+    .months .m-name, .months .m-amt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .months .m-short { display: none; }
     .months button[aria-selected="true"] { color: white; }
     .months .m-name { display: block; font-size: 0.95rem; font-weight: 700; letter-spacing: -0.03em; }
     .months .m-amt { display: block; margin-top: 2px; font-size: 0.75rem; color: var(--muted); }
     .months button[aria-selected="true"] .m-amt { color: white; }
-    .months[aria-label="Year"] { padding-bottom: 10px; margin-bottom: 12px; }
+    .months[aria-label="Year"] { padding-bottom: 10px; margin-bottom: 12px; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+
+    .view-filter {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 6px 16px;
+      margin: 4px 0 14px;
+    }
+    .view-filter .filter-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .view-filter button {
+      border: 0;
+      background: none;
+      padding: 4px 0;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #fff;
+      opacity: 0.4;
+    }
+    .view-filter button[aria-pressed="true"] { opacity: 1; text-decoration: underline; text-underline-offset: 4px; }
+    .jump { display: none; }
+    .card { scroll-margin-top: 80px; }
     .months[aria-label="Year"] .m-name { font-size: 0.78rem; }
     .months[aria-label="Year"] .m-amt { font-size: 0.65rem; }
 
@@ -352,6 +388,33 @@
     @media (max-width: 720px) {
       .sub { display: none; }
       .year-total strong { font-size: 1rem; }
+      .header-inner { padding: 12px 0; }
+    }
+    @media (max-width: 560px) {
+      .months { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 6px; }
+      .months[aria-label="Year"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .months .m-long { display: none; }
+      .months .m-short { display: inline; }
+      .months .m-amt { font-size: 0.7rem; }
+      .entry-top { flex-wrap: wrap; gap: 2px 8px; }
+      .source { white-space: normal; }
+      .meta { line-height: 1.5; }
+      .meta .actions { display: flex; flex-wrap: wrap; gap: 0 18px; margin-top: 2px; }
+      .meta .actions .text-btn { margin-left: 0; padding: 8px 0; font-size: 0.85rem; }
+      .split-detail { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 8px; }
+      .meaning { min-height: 0; }
+      .list-head { flex-wrap: wrap; gap: 4px 12px; }
+    }
+    @media (max-width: 1023px) {
+      .jump {
+        display: inline-block;
+        margin-top: 14px;
+        border: 0;
+        background: none;
+        padding: 6px 0;
+        color: #fff;
+        font-weight: 700;
+      }
     }
     @media (min-width: 768px) {
       .wrap { width: min(1120px, calc(100% - 48px)); }
@@ -485,6 +548,20 @@
     }
 
     const TODAY = todayIso();
+    const UNCATEGORIZED = "__none";
+    const FILTER_KEY = "incomeflow:view-filter";
+
+    function loadFilter() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(FILTER_KEY) || "[]");
+        return Array.isArray(saved) ? saved.filter((id) => typeof id === "string") : [];
+      } catch {
+        return [];
+      }
+    }
+    function saveFilter() {
+      try { localStorage.setItem(FILTER_KEY, JSON.stringify(state.filter)); } catch {}
+    }
     const CURRENCIES = ["CZK", "EUR", "USD"];
 
     const state = {
@@ -493,6 +570,7 @@
       categories: [],
       category: null,
       viewMonth: TODAY.slice(0, 7),
+      filter: loadFilter(),
       openId: null,
       editId: null,
       editSource: "",
@@ -543,8 +621,8 @@
       return round2(sum);
     }
     function renderYear() {
-      const year = (state.viewMonth || TODAY).slice(0, 4);
-      document.getElementById("year-label").textContent = year + " total";
+      const year = TODAY.slice(0, 4);
+      document.getElementById("year-label").textContent = year + (state.filter.length ? " total · filtered" : " total");
       document.getElementById("year-total").textContent = money(yearTotal(year));
     }
     function monthKey(iso) { return iso.slice(0, 7); }
@@ -596,8 +674,52 @@
       return parsed.length ? parsed : null;
     }
 
-    function visibleEntries() {
+    function currencyEntries() {
       return state.entries.filter((entry) => entry.currency === state.currency);
+    }
+
+    function visibleEntries() {
+      const entries = currencyEntries();
+      if (!state.filter.length) return entries;
+      return entries.filter((entry) => state.filter.includes(entry.categoryId || UNCATEGORIZED));
+    }
+
+    function pruneFilter() {
+      const known = new Set(state.categories.map((category) => category.id));
+      known.add(UNCATEGORIZED);
+      const next = state.filter.filter((id) => known.has(id));
+      if (next.length !== state.filter.length) {
+        state.filter = next;
+        saveFilter();
+      }
+    }
+
+    function renderFilter() {
+      const options = state.categories.map((category) => [category.id, category.name]);
+      if (currencyEntries().some((entry) => !entry.categoryId)) options.push([UNCATEGORIZED, "Uncategorized"]);
+      if (!options.length) return null;
+      const bar = el("div", { class: "view-filter", role: "group", "aria-label": "Show categories" });
+      bar.append(el("span", { class: "filter-label" }, ["Show"]));
+      const pick = (next) => {
+        state.filter = next;
+        saveFilter();
+        state.openId = null;
+        renderMonth();
+      };
+      bar.append(el("button", {
+        type: "button",
+        "aria-pressed": state.filter.length ? "false" : "true",
+        onclick: () => pick([])
+      }, ["All"]));
+      options.forEach(([id, name]) => {
+        const active = state.filter.includes(id);
+        bar.append(el("button", {
+          type: "button",
+          "aria-pressed": active ? "true" : "false",
+          onclick: () => pick(active ? state.filter.filter((item) => item !== id) : [...state.filter, id])
+        }, [name]));
+      });
+      return bar;
     }
 
     function categoryName(id) {
@@ -661,6 +783,8 @@
       const sharedSum = round2(shared.reduce((sum, row) => sum + row.part.amount, 0));
 
       monthEl.replaceChildren();
+      const filterBar = renderFilter();
+      if (filterBar) monthEl.append(filterBar);
       const viewYear = ym.slice(0, 4);
       const years = el("div", { class: "months", role: "tablist", "aria-label": "Year" });
       yearsShown().forEach((year) => {
@@ -691,7 +815,10 @@
           "aria-selected": selected ? "true" : "false",
           onclick: () => { state.viewMonth = key; state.openId = null; renderMonth(); }
         }, [
-          el("span", { class: "m-name" }, [formatMonth(key, { month: "long" })]),
+          el("span", { class: "m-name" }, [
+            el("span", { class: "m-long" }, [formatMonth(key, { month: "long" })]),
+            el("span", { class: "m-short" }, [formatMonth(key, { month: "short" })])
+          ]),
           el("span", { class: "m-amt" }, [money(monthTotal(key))])
         ]));
       });
@@ -703,7 +830,7 @@
       hero.append(figure);
       state.flash = false;
 
-      let meaning = "Nothing counts in this month yet.";
+      let meaning = state.filter.length ? "Nothing in these categories counts in this month." : "Nothing counts in this month yet.";
       if (rows.length && shared.length) {
         const names = shared.map((row) => row.entry.source);
         meaning = money(sharedSum) + " is " + listSentence(names) + ", shared with other months.";
@@ -711,6 +838,14 @@
         meaning = "Everything here was logged in " + formatMonth(ym, { month: "long" }) + ".";
       }
       hero.append(el("p", { class: "meaning" }, [meaning]));
+      hero.append(el("button", {
+        type: "button",
+        class: "jump",
+        onclick: () => {
+          document.getElementById("log").scrollIntoView({ behavior: "smooth", block: "start" });
+          amountEl.focus({ preventScroll: true });
+        }
+      }, ["Log income ↓"]));
       monthEl.append(hero);
 
       const head = el("div", { class: "list-head" }, [
@@ -721,7 +856,9 @@
 
       const ledger = el("div", { class: "ledger" });
       if (!rows.length) {
-        ledger.append(el("p", { class: "empty" }, ["Use Log income. A payment lands here as soon as you add it."]));
+        ledger.append(el("p", { class: "empty" }, [state.filter.length
+          ? "No entries in the selected categories this month."
+          : "Use Log income. A payment lands here as soon as you add it."]));
         monthEl.append(ledger);
         renderYear();
         return;
@@ -749,9 +886,10 @@
           const index = parts(entry).findIndex((item) => item.month === ym) + 1;
           meta = "Started " + formatDay(entry.date) + " · month " + index + " of " + entry.splitMonths + " · " + money(entry.amount) + " total";
         }
-        const metaLine = el("p", { class: "meta" }, [meta]);
+        const actions = el("span", { class: "actions" });
+        const metaLine = el("p", { class: "meta" }, [meta, actions]);
         if (entry.splitMonths > 1 && !editing) {
-          metaLine.append(el("button", {
+          actions.append(el("button", {
             type: "button",
             class: "text-btn",
             onclick: (event) => {
@@ -762,12 +900,12 @@
           }, [open ? "Hide months" : "Months"]));
         }
         if (editing) {
-          metaLine.append(el("button", {
+          actions.append(el("button", {
             type: "button",
             class: "text-btn",
             onclick: (event) => { event.stopPropagation(); saveEdit(entry); }
           }, ["Save"]));
-          metaLine.append(el("button", {
+          actions.append(el("button", {
             type: "button",
             class: "text-btn",
             onclick: (event) => {
@@ -777,7 +915,7 @@
             }
           }, ["Cancel"]));
         } else {
-          metaLine.append(el("button", {
+          actions.append(el("button", {
             type: "button",
             class: "text-btn",
             onclick: (event) => {
@@ -789,7 +927,7 @@
               renderMonth();
             }
           }, ["Edit"]));
-          metaLine.append(el("button", {
+          actions.append(el("button", {
             type: "button",
             class: "text-btn danger",
             onclick: (event) => {
@@ -997,6 +1135,7 @@
       state.categories = categoriesResponse.data || [];
       state.entries = (entriesResponse.data || []).map(mapEntry);
       if (state.category && !state.categories.some((category) => category.id === state.category)) state.category = null;
+      pruneFilter();
       renderChips();
       renderMonth();
       updateSubmit();
