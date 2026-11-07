@@ -19,14 +19,28 @@
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
     html, body { margin: 0; min-height: 100%; }
+    /* Mobile Safari paints the area under its floating toolbar with the page's
+       background colour, so the root colour matches the bottom of the gradient. */
+    html { background-color: #ff9a3c; }
     body {
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       font-family: "DM Sans", system-ui, sans-serif;
       color: var(--ink);
-      background: #000;
+      background: transparent;
       -webkit-font-smoothing: antialiased;
+    }
+    body::after {
+      content: "";
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      z-index: -1;
+      background-color: #ff9a3c;
+      pointer-events: none;
     }
     body::before {
       content: "";
@@ -58,7 +72,7 @@
       position: sticky;
       top: 0;
       z-index: 5;
-      background: none;
+      background: #000;
       border-bottom: 1px solid #fff;
     }
     h1, h2, .source, .card h2 { letter-spacing: -0.045em; }
