@@ -151,7 +151,7 @@
       flex-wrap: wrap;
       align-items: baseline;
       gap: 6px 16px;
-      margin: 4px 0 14px;
+      margin: 0 0 6px;
     }
     .view-filter .filter-label {
       font-size: 0.72rem;
@@ -783,8 +783,6 @@
       const sharedSum = round2(shared.reduce((sum, row) => sum + row.part.amount, 0));
 
       monthEl.replaceChildren();
-      const filterBar = renderFilter();
-      if (filterBar) monthEl.append(filterBar);
       const viewYear = ym.slice(0, 4);
       const years = el("div", { class: "months", role: "tablist", "aria-label": "Year" });
       yearsShown().forEach((year) => {
@@ -853,6 +851,8 @@
         el("span", {}, [rows.length ? rows.length + (rows.length === 1 ? " entry" : " entries") : ""])
       ]);
       monthEl.append(head);
+      const filterBar = renderFilter();
+      if (filterBar) monthEl.append(filterBar);
 
       const ledger = el("div", { class: "ledger" });
       if (!rows.length) {
