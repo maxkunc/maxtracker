@@ -19,9 +19,13 @@
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
     html, body { margin: 0; min-height: 100%; }
-    /* Mobile Safari paints the area under its floating toolbar with the page's
-       background colour, so the root colour matches the bottom of the gradient. */
-    html { background-color: #ff9a3c; }
+    /* The gradient is painted on the page itself, not on a position: fixed layer.
+       Safari 26 tints the area under its floating toolbar whenever a fixed element
+       touches the bottom edge; without one it shows the page through the toolbar. */
+    html {
+      min-height: 100%;
+      background: #000 linear-gradient(0deg, #ff9a3c 0%, #ff5a2a 12%, #e23a32 26%, #5a1420 42%, #000 58%);
+    }
     body {
       min-height: 100vh;
       display: flex;
@@ -30,22 +34,6 @@
       color: var(--ink);
       background: transparent;
       -webkit-font-smoothing: antialiased;
-    }
-    body::before {
-      content: "";
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      /* Large viewport: also covers the area behind mobile browser toolbars,
-         and doesn't jump when they show or hide. */
-      height: 100vh;
-      height: 100lvh;
-      z-index: -1;
-      /* The bottom stays flat #ff9a3c (the root colour) so the strip Safari paints
-         under its toolbar blends into the gradient instead of showing a seam. */
-      background: linear-gradient(0deg, #ff9a3c 0%, #ff9a3c 10%, #ff5a2a 21%, #e23a32 34%, #5a1420 48%, #000 62%);
-      pointer-events: none;
     }
     button, input { font: inherit; color: inherit; }
     button { cursor: pointer; }
