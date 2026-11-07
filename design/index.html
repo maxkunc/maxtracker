@@ -807,7 +807,7 @@
       });
       monthEl.append(years);
       const switcher = el("div", { class: "months", role: "tablist", "aria-label": "Month" });
-      monthsShown().filter((key) => key.startsWith(viewYear)).forEach((key) => {
+      Array.from({ length: 12 }, (_, i) => viewYear + "-" + String(i + 1).padStart(2, "0")).forEach((key) => {
         const selected = key === ym;
         switcher.append(el("button", {
           type: "button",
