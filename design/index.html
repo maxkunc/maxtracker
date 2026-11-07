@@ -4,6 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>IncomeFlow — This month</title>
+  <meta name="theme-color" content="#000000" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="IncomeFlow" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
@@ -50,6 +58,7 @@
       z-index: 5;
       background: #000;
       border-bottom: 1px solid #fff;
+      padding-top: env(safe-area-inset-top);
     }
     h1, h2, .source, .card h2 { letter-spacing: -0.045em; }
     .header-inner {
@@ -167,6 +176,7 @@
     }
     .view-filter button[aria-pressed="true"] { opacity: 1; text-decoration: underline; text-underline-offset: 4px; }
     .jump { display: none; }
+    .tabbar, .profile-view { display: none; }
     .card { scroll-margin-top: 80px; }
     .months[aria-label="Year"] .m-name { font-size: 0.78rem; }
     .months[aria-label="Year"] .m-amt { font-size: 0.65rem; }
@@ -285,6 +295,8 @@
       padding: 0;
     }
     input::placeholder { color: #6e7788; }
+    input[type="text"]:focus-visible, input[type="number"]:focus-visible, input[type="date"]:focus-visible,
+    input[type="email"]:focus-visible, input[type="password"]:focus-visible { outline: none; border-bottom-color: #fff; }
     .amount { height: 64px; font-size: 1.8rem; color: white; }
     .chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .chips input[type="text"] { width: 150px; height: 36px; }
@@ -401,7 +413,58 @@
       .meaning { min-height: 0; }
       .list-head { flex-wrap: wrap; gap: 4px 12px; }
     }
-    @media (max-width: 1023px) {
+    /* Phones: three views switched from a bottom bar. */
+    @media (max-width: 720px) {
+      body.signed-in { padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
+      body.signed-in footer { display: none; }
+      .signed-in .profile { display: none; }
+      #app[data-view="dashboard"] > :not(#month),
+      #app[data-view="log"] > :not(.card),
+      #app[data-view="profile"] > :not(.profile-view) { display: none; }
+      #app[data-view="log"] .card { margin-top: 0; border-top: 0; padding-top: 12px; }
+      .profile-view { display: block; padding: 20px 0 0; }
+      .profile-view h2 { margin: 0 0 4px; font-size: 1.45rem; letter-spacing: -0.04em; }
+      .profile-view .profile-name { margin: 0; color: var(--muted); font-weight: 400; overflow-wrap: anywhere; }
+      .profile-view .segmented button { padding: 6px 0; }
+      .profile-view .sign-out { margin-top: 28px; padding: 6px 0; }
+      .signed-in .tabbar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 7;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        align-items: center;
+        height: calc(64px + env(safe-area-inset-bottom));
+        padding-bottom: env(safe-area-inset-bottom);
+        background: #000;
+        border-top: 1px solid #fff;
+      }
+      .tabbar button {
+        height: 64px;
+        border: 0;
+        background: none;
+        color: #fff;
+        opacity: 0.5;
+        display: grid;
+        place-items: center;
+      }
+      .tabbar button[aria-current="page"] { opacity: 1; }
+      .tabbar .tab-add span {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: #fff;
+        color: #000;
+      }
+      .tabbar .tab-add { opacity: 1; }
+      .tabbar .tab-add[aria-current="page"] span { background: linear-gradient(0deg, #ff9a3c, #e23a32); color: #fff; }
+      .toast { bottom: calc(80px + env(safe-area-inset-bottom)); }
+    }
+    @media (min-width: 721px) and (max-width: 1023px) {
       .jump {
         display: inline-block;
         margin-top: 14px;
@@ -518,7 +581,25 @@
           <p class="form-note" id="form-note"></p>
         </form>
       </section>
+      <section class="profile-view" aria-labelledby="profile-view-title">
+        <h2 id="profile-view-title">Account</h2>
+        <p class="profile-name" id="profile-view-name"></p>
+        <p class="profile-label" id="currency-view-label">Currency</p>
+        <div class="segmented" id="currency-view-choices" role="group" aria-labelledby="currency-view-label"></div>
+        <button type="button" class="text-btn sign-out" id="sign-out-view">Sign out</button>
+      </section>
     </main>
+    <nav class="tabbar" id="tabbar" aria-label="Views">
+      <button type="button" data-view="dashboard" aria-label="Dashboard">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M8 17v-3"/><path d="M13 17V9"/><path d="M18 17V5"/></svg>
+      </button>
+      <button type="button" class="tab-add" data-view="log" aria-label="Log income">
+        <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <button type="button" data-view="profile" aria-label="Account">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </button>
+    </nav>
   </div>
   <footer>
     <div class="wrap footer-inner">© 2026 Maxmilian Kunc</div>
@@ -836,6 +917,7 @@
         type: "button",
         class: "jump",
         onclick: () => {
+          if (phoneQuery.matches) { setView("log"); return; }
           document.getElementById("log").scrollIntoView({ behavior: "smooth", block: "start" });
           amountEl.focus({ preventScroll: true });
         }
@@ -1226,7 +1308,8 @@
       renderSplitControls();
       await loadTracker(state.userId);
       updateSubmit();
-      amountEl.focus();
+      if (phoneQuery.matches) setView("dashboard");
+      else amountEl.focus();
       toast("Income saved", money(amount) + " saved.");
     });
 
@@ -1245,20 +1328,38 @@
     const currencyChoices = document.getElementById("currency-choices");
 
     function renderCurrencies() {
-      currencyChoices.replaceChildren();
-      CURRENCIES.forEach((code) => {
-        currencyChoices.append(el("button", {
-          type: "button",
-          "aria-pressed": state.currency === code ? "true" : "false",
-          onclick: () => {
-            state.currency = code;
-            renderCurrencies();
-            renderMonth();
-            updateSubmit();
-          }
-        }, [code]));
+      [currencyChoices, document.getElementById("currency-view-choices")].forEach((group) => {
+        group.replaceChildren();
+        CURRENCIES.forEach((code) => {
+          group.append(el("button", {
+            type: "button",
+            "aria-pressed": state.currency === code ? "true" : "false",
+            onclick: () => {
+              state.currency = code;
+              renderCurrencies();
+              renderMonth();
+              updateSubmit();
+            }
+          }, [code]));
+        });
       });
     }
+
+    // Phone views (bottom bar). On wider screens every section stays visible.
+    const phoneQuery = window.matchMedia("(max-width: 720px)");
+    function setView(view) {
+      appEl.dataset.view = view;
+      document.querySelectorAll("#tabbar button").forEach((button) => {
+        if (button.dataset.view === view) button.setAttribute("aria-current", "page");
+        else button.removeAttribute("aria-current");
+      });
+      if (!phoneQuery.matches) return;
+      window.scrollTo(0, 0);
+      if (view === "log") amountEl.focus({ preventScroll: true });
+    }
+    document.querySelectorAll("#tabbar button").forEach((button) => {
+      button.addEventListener("click", () => setView(button.dataset.view));
+    });
 
     profileBtn.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -1304,6 +1405,7 @@
       state.category = null;
       appEl.hidden = true;
       headerTools.hidden = true;
+      document.body.classList.remove("signed-in");
       gate.hidden = false;
       gateStatus.textContent = message || "Your income stays on your account.";
       authBox.hidden = false;
@@ -1314,12 +1416,15 @@
       state.userId = session.user.id;
       const email = session.user.email || "";
       document.getElementById("profile-name").textContent = email;
+      document.getElementById("profile-view-name").textContent = email;
       profileBtn.textContent = email.slice(0, 2).toUpperCase() || "·";
       if (sameUser) return;
       gate.hidden = true;
       authBox.hidden = true;
       appEl.hidden = false;
       headerTools.hidden = false;
+      document.body.classList.add("signed-in");
+      setView("dashboard");
       renderCurrencies();
       renderChips();
       renderSplitControls();
@@ -1405,6 +1510,7 @@
       passwordEl.value = "";
       toast(authMode === "signup" ? "Account created" : "Signed in", "Your income is ready.");
     });
+    document.getElementById("sign-out-view").addEventListener("click", () => document.getElementById("sign-out").click());
     document.getElementById("sign-out").addEventListener("click", async () => {
       const { error } = await supabase.auth.signOut();
       if (error) {
@@ -1425,6 +1531,10 @@
       if (data.session?.user?.id) showSignedIn(data.session);
       else showSignedOut();
     });
+
+    if ("serviceWorker" in navigator && !["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    }
   </script>
 </body>
 </html>

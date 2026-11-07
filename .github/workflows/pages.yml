@@ -24,7 +24,7 @@ jobs:
           mkdir -p _site/design
           cp site/index.html site/privacy.html site/terms.html site/names.json _site/
           cp -r site/assets _site/assets
-          cp design/index.html _site/design/index.html
+          cp -r design/. _site/design/
           touch _site/.nojekyll
           python3 - <<'PY'
           import pathlib, re
