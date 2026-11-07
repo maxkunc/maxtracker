@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>IncomeFlow — This month</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -19,20 +19,17 @@
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
     html, body { margin: 0; min-height: 100%; }
-    /* The gradient is painted on the page itself, not on a position: fixed layer.
-       Safari 26 tints the area under its floating toolbar whenever a fixed element
-       touches the bottom edge; without one it shows the page through the toolbar. */
-    html {
-      min-height: 100%;
-      background: #000 linear-gradient(0deg, #ff9a3c 0%, #ff5a2a 12%, #e23a32 26%, #5a1420 42%, #000 58%);
-    }
+    /* Same background setup as the landing page (site/index.html), which Safari
+       leaves alone under its toolbar. Don't move the gradient onto a fixed layer. */
+    html { background: #000; }
     body {
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       font-family: "DM Sans", system-ui, sans-serif;
       color: var(--ink);
-      background: transparent;
+      background: linear-gradient(0deg, #ff9a3c 0%, #ff5a2a 12%, #e23a32 26%, #5a1420 42%, #000 58%);
+      background-attachment: fixed;
       -webkit-font-smoothing: antialiased;
     }
     button, input { font: inherit; color: inherit; }
