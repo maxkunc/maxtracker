@@ -1429,8 +1429,11 @@
       loadTracker(session.user.id);
     }
 
+    // One fixed return address for sign-in, however the app was opened
+    // (Safari, home-screen app, with or without index.html): the app's folder URL,
+    // e.g. https://maxkunc.github.io/maxtracker/design/
     function appReturnUrl() {
-      return window.location.origin + window.location.pathname;
+      return new URL("./", window.location.href).href;
     }
 
     document.getElementById("google").addEventListener("click", async () => {
