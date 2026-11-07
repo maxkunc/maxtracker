@@ -31,7 +31,13 @@
     body::before {
       content: "";
       position: fixed;
-      inset: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+      /* Large viewport: also covers the area behind mobile browser toolbars,
+         and doesn't jump when they show or hide. */
+      height: 100vh;
+      height: 100lvh;
       z-index: -1;
       background: linear-gradient(0deg, #ff9a3c 0%, #ff5a2a 12%, #e23a32 26%, #5a1420 42%, #000 58%);
       pointer-events: none;
