@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>IncomeFlow — This month</title>
+  <meta name="theme-color" content="#000000" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="IncomeFlow" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+  <style>
+:root {
+      --ink: #ffffff;
+      --muted: rgba(255, 255, 255, 0.72);
+      --line: rgba(255, 255, 255, 0.16);
+      --radius: 8px;
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html, body { margin: 0; min-height: 100%; }
+    /* Same background setup as the landing page (site/index.html), which Safari
+       leaves alone under its toolbar. Don't move the gradient onto a fixed layer. */
+    html { background: #000; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-family: "DM Sans", system-ui, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(0deg, #ff9a3c 0%, #ff5a2a 12%, #e23a32 26%, #5a1420 42%, #000 58%);
+      background-attachment: fixed;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    :focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+    .num, .figure, .money, .year-total strong, .amount, .m-amt, .slice b {
+      font-family: "DM Sans", system-ui, sans-serif;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.045em;
+    }
+
+    .wrap { width: min(1120px, calc(100% - 32px)); margin: 0 auto; }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: #000;
+      border-bottom: 1px solid #fff;
+      padding-top: env(safe-area-inset-top);
+    }
+    h1, h2, .source, .card h2 { letter-spacing: -0.045em; }
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 0;
+    }
+    h1 { margin: 0; font-size: 1.35rem; letter-spacing: -0.04em; }
+    .sub { margin: 2px 0 0; color: var(--muted); font-size: 0.875rem; }
+    .header-tools { display: flex; align-items: center; gap: 14px; }
+    .year-total { text-align: right; }
+    .year-total span {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .year-total strong { font-size: 1.15rem; }
+    .profile { position: relative; }
+    .avatar {
+      border: 0;
+      background: transparent;
+      color: white;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      padding: 0;
+    }
+    .profile-panel {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 10px);
+      width: min(260px, 80vw);
+      background: #1a0e10;
+      border: 0;
+      padding: 16px;
+      z-index: 6;
+    }
+    .profile-name { margin: 0; font-weight: 700; }
+    .profile-label {
+      margin: 14px 0 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .page { flex: 1; }
+    footer {
+      color: #1a0c10;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      border-top: 1px solid rgba(26, 12, 16, 0.45);
+    }
+    .footer-inner { padding: 18px 0 28px; }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 18px;
+      padding: 8px 0 36px;
+    }
+    #month { min-width: 0; }
+
+    .months {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 12px 8px;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #fff;
+    }
+    .months button {
+      min-width: 0;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 4px 0;
+      text-align: left;
+    }
+    .months .m-name, .months .m-amt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .months .m-short { display: none; }
+    .months button[aria-selected="true"] { color: white; }
+    .months .m-name { display: block; font-size: 0.95rem; font-weight: 700; letter-spacing: -0.03em; }
+    .months .m-amt { display: block; margin-top: 2px; font-size: 0.75rem; color: var(--muted); }
+    .months button[aria-selected="true"] .m-amt { color: white; }
+    .months[aria-label="Year"] { padding-bottom: 10px; margin-bottom: 12px; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+
+    .view-filter {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 6px 16px;
+      margin: 0 0 6px;
+    }
+    .view-filter .filter-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .view-filter button {
+      border: 0;
+      background: none;
+      padding: 4px 0;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #fff;
+      opacity: 0.4;
+    }
+    .view-filter button[aria-pressed="true"] { opacity: 1; text-decoration: underline; text-underline-offset: 4px; }
+    .jump { display: none; }
+    .tabbar, .profile-view { display: none; }
+    .card { scroll-margin-top: 80px; }
+    .months[aria-label="Year"] .m-name { font-size: 0.78rem; }
+    .months[aria-label="Year"] .m-amt { font-size: 0.65rem; }
+
+    .hero {
+      padding: 8px 0 0;
+      background: none;
+    }
+    .eyebrow {
+      margin: 0 0 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.78);
+    }
+    .figure {
+      margin: 0;
+      font-size: clamp(3.2rem, 8vw, 5.2rem);
+      line-height: 0.9;
+      letter-spacing: -0.06em;
+      color: white;
+    }
+    .figure.flash { animation: flash 700ms ease; }
+    @keyframes flash { from { opacity: 0.45; } to { opacity: 1; } }
+    .meaning { margin: 14px 0 0; max-width: 38ch; line-height: 1.45; min-height: 2.9em; color: rgba(255, 255, 255, 0.88); }
+    .pace { margin: 8px 0 0; color: rgba(255, 255, 255, 0.72); font-size: 0.92rem; }
+    .prompt {
+      margin-top: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .prompt p { margin: 0; font-weight: 600; line-height: 1.35; }
+    .submit {
+      border: 0;
+      background: none;
+      color: #fff;
+      font-weight: 700;
+      text-align: left;
+      padding: 0;
+    }
+
+    .list-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin: 0 0 10px;
+      padding-top: 18px;
+      border-top: 1px solid #fff;
+    }
+    .list-head h2 { margin: 0; font-size: 1.15rem; letter-spacing: -0.03em; }
+    .list-head span { color: var(--muted); font-size: 0.8125rem; }
+
+    .ledger { background: none; border: 0; padding: 0; }
+    .entry {
+      width: 100%;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px 12px;
+      padding: 14px 0;
+      border-top: 1px solid var(--line);
+    }
+    .entry:first-child { border-top: 0; }
+    .entry-main { min-width: 0; }
+    .entry-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .source { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .meta { margin: 4px 0 0; color: var(--muted); font-size: 0.8rem; }
+    .money { color: white; text-align: right; padding-top: 2px; }
+    .meta .text-btn { margin-left: 8px; }
+    .text-btn { border: 0; background: transparent; color: var(--muted); padding: 0; font-size: 0.8rem; }
+    .text-btn.danger:hover { color: #fff; }
+    .text-btn:hover { color: white; }
+    .badge {
+      display: inline-flex;
+      background: none;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 0;
+      flex: none;
+    }
+    .split-detail {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 8px;
+    }
+    .slice { padding: 0; background: none; }
+    .slice.here b { color: white; }
+    .slice b { display: block; }
+    .slice span { color: var(--muted); font-size: 0.75rem; }
+    .empty { margin: 12px 4px; color: var(--muted); }
+
+    .card {
+      background: none;
+      border: 0;
+      border-top: 1px solid #fff;
+      margin-top: 8px;
+      padding: 22px 0 0;
+    }
+    .card h2 { margin: 0; font-size: 1.45rem; letter-spacing: -0.04em; }
+    .card .help { margin: 6px 0 16px; color: var(--muted); font-size: 0.9rem; line-height: 1.45; }
+    label { display: block; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; }
+    label:first-of-type { margin-top: 0; }
+    input[type="text"], input[type="number"], input[type="date"], input[type="email"], input[type="password"] {
+      width: 100%;
+      height: 48px;
+      border: 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+      background: transparent;
+      border-radius: 0;
+      padding: 0;
+    }
+    input::placeholder { color: #6e7788; }
+    input[type="text"]:focus-visible, input[type="number"]:focus-visible, input[type="date"]:focus-visible,
+    input[type="email"]:focus-visible, input[type="password"]:focus-visible { outline: none; border-bottom-color: #fff; }
+    .amount { height: 64px; font-size: 1.8rem; color: white; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .chips input[type="text"] { width: 150px; height: 36px; }
+    .chip {
+      border: 0;
+      background: none;
+      padding: 0 16px 0 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+      opacity: 0.4;
+    }
+    .chip-add {
+      width: auto;
+      height: auto;
+      padding: 0;
+      display: inline-grid;
+      place-items: center;
+      opacity: 0.7;
+    }
+    .chip[aria-pressed="true"] { background: none; color: #fff; opacity: 1; }
+    .spread {
+      display: block;
+      margin-top: 16px;
+      width: auto;
+      border: 0;
+      text-align: left;
+      padding: 0;
+      font-size: 0.8rem;
+      font-weight: 700;
+      background: none;
+      color: white;
+    }
+    .spread-panel { margin-top: 12px; }
+    .segmented { display: flex; gap: 14px; padding: 0; background: none; }
+    .segmented button {
+      flex: none;
+      border: 0;
+      background: none;
+      padding: 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    .segmented button[aria-pressed="true"],
+    .profile-panel .segmented button[aria-pressed="true"] { background: none; color: white; }
+    .preview { margin: 10px 0 0; font-size: 0.875rem; line-height: 1.4; color: #fff; }
+    .preview.warn, .form-note { color: #fff; }
+    .month-inputs { display: grid; gap: 8px; margin-top: 10px; }
+    .month-inputs label { margin: 0; }
+    .month-inputs input { height: 40px; }
+    .submit { display: block; margin-top: 14px; width: auto; height: auto; font-size: 1rem; }
+    .submit:disabled { background: none; color: #fff; opacity: 0.35; cursor: not-allowed; }
+    .form-note { min-height: 1.2em; margin: 8px 0 0; font-size: 0.8125rem; }
+    .gate { max-width: 420px; padding: 48px 0 80px; }
+    .gate h2 { margin: 0 0 8px; font-size: 1.45rem; }
+    .gate .help { margin: 0 0 18px; color: var(--muted); }
+    .gate .segmented { margin-bottom: 8px; }
+    .google { display: inline-flex; align-items: center; gap: 10px; margin: 0 0 18px; }
+    .google svg { flex-shrink: 0; }
+    .auth-or {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .auth-or::before, .auth-or::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.35);
+    }
+    .entry-edit { height: 36px; font-size: 1rem; }
+    .sign-out { display: block; margin-top: 16px; color: #fff; font-weight: 700; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%) translateY(12px);
+      background: #1a0e10;
+      border: 0;
+      padding: 12px 14px;
+      min-width: min(280px, calc(100% - 32px));
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast strong { display: block; }
+    .toast span { color: var(--muted); font-size: 0.875rem; }
+
+    @media (max-width: 720px) {
+      .sub { display: none; }
+      .year-total strong { font-size: 1rem; }
+      .header-inner { padding: 12px 0; }
+    }
+    @media (max-width: 560px) {
+      .months { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 6px; }
+      .months[aria-label="Year"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .months .m-long { display: none; }
+      .months .m-short { display: inline; }
+      .months .m-amt { font-size: 0.7rem; }
+      .entry-top { flex-wrap: wrap; gap: 2px 8px; }
+      .source { white-space: normal; }
+      .meta { line-height: 1.5; }
+      .meta .actions { display: flex; flex-wrap: wrap; gap: 0 18px; margin-top: 2px; }
+      .meta .actions .text-btn { margin-left: 0; padding: 8px 0; font-size: 0.85rem; }
+      .split-detail { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 8px; }
+      .meaning { min-height: 0; }
+      .list-head { flex-wrap: wrap; gap: 4px 12px; }
+    }
+    /* Phones: three views switched from a bottom bar. */
+    @media (max-width: 720px) {
+      body.signed-in { padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
+      body.signed-in footer { display: none; }
+      .signed-in .profile { display: none; }
+      #app[data-view="dashboard"] > :not(#month),
+      #app[data-view="log"] > :not(.card),
+      #app[data-view="profile"] > :not(.profile-view) { display: none; }
+      #app[data-view="log"] .card { margin-top: 0; border-top: 0; padding-top: 12px; }
+      .profile-view { display: block; padding: 20px 0 0; }
+      .profile-view h2 { margin: 0 0 4px; font-size: 1.45rem; letter-spacing: -0.04em; }
+      .profile-view .profile-name { margin: 0; color: var(--muted); font-weight: 400; overflow-wrap: anywhere; }
+      .profile-view .segmented button { padding: 6px 0; }
+      .profile-view .sign-out { margin-top: 28px; padding: 6px 0; }
+      .signed-in .tabbar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 7;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        align-items: center;
+        height: calc(64px + env(safe-area-inset-bottom));
+        padding-bottom: env(safe-area-inset-bottom);
+        /* Opaque, so nothing scrolls underneath, but painted with the bottom slice
+           of the same viewport-sized gradient as the page, so it reads as the page
+           continuing below the line. Its bottom edge is exactly #ff9a3c. */
+        background-color: #ff9a3c;
+        background-image: linear-gradient(0deg, #ff9a3c 0%, #ff5a2a 12%, #e23a32 26%, #5a1420 42%, #000 58%);
+        background-size: 100% 100vh;
+        background-position: center bottom;
+        background-repeat: no-repeat;
+        border-top: 1px solid #fff;
+      }
+      .tabbar button {
+        height: 64px;
+        border: 0;
+        background: none;
+        color: #fff;
+        opacity: 0.4;
+        display: grid;
+        place-items: center;
+      }
+      .tabbar button[aria-current="page"] { opacity: 1; }
+      .toast { bottom: calc(80px + env(safe-area-inset-bottom)); }
+    }
+    @media (min-width: 721px) and (max-width: 1023px) {
+      .jump {
+        display: inline-block;
+        margin-top: 14px;
+        border: 0;
+        background: none;
+        padding: 6px 0;
+        color: #fff;
+        font-weight: 700;
+      }
+    }
+    @media (min-width: 768px) {
+      .wrap { width: min(1120px, calc(100% - 48px)); }
+      main { gap: 22px; padding-top: 12px; }
+    }
+    @media (min-width: 1024px) {
+      main {
+        grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.78fr);
+        align-items: start;
+        gap: 28px;
+      }
+      .card {
+        position: sticky;
+        top: 92px;
+        border-top: 0;
+        border-left: 1px solid #fff;
+        margin-top: 0;
+        padding: 8px 0 0 28px;
+      }
+    }
+
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap header-inner">
+      <div>
+        <h1>IncomeFlow</h1>
+        <p class="sub">What counts this month.</p>
+      </div>
+      <div class="header-tools" id="header-tools" hidden>
+        <div class="year-total">
+          <span id="year-label">2026 total</span>
+          <strong id="year-total" class="num"></strong>
+        </div>
+        <div class="profile">
+          <button type="button" class="avatar" id="profile-btn" aria-expanded="false" aria-haspopup="dialog" aria-controls="profile-panel">MK</button>
+          <div class="profile-panel" id="profile-panel" role="dialog" aria-label="Profile settings" hidden>
+            <p class="profile-name" id="profile-name"></p>
+            <button type="button" class="text-btn sign-out" id="sign-out">Sign out</button>
+            <p class="profile-label" id="currency-label">Currency</p>
+            <div class="segmented" id="currency-choices" role="group" aria-labelledby="currency-label"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap page">
+    <section class="gate" id="gate">
+      <h2>Sign in to IncomeFlow</h2>
+      <p class="help" id="gate-status">Loading…</p>
+      <div id="auth-box" hidden>
+        <div class="segmented" role="group" aria-label="Account">
+          <button type="button" id="auth-signin" aria-pressed="true">Sign in</button>
+          <button type="button" id="auth-signup" aria-pressed="false">Create account</button>
+        </div>
+        <button type="button" class="submit google" id="google">
+          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18">
+            <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/>
+          </svg>
+          Continue with Gmail
+        </button>
+        <p class="auth-or">or</p>
+        <form id="auth">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" required />
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" minlength="6" required />
+          <button class="submit" id="auth-submit" type="submit">Sign in</button>
+          <p class="form-note" id="auth-note"></p>
+        </form>
+      </div>
+    </section>
+    <main id="app" hidden>
+      <section id="month" aria-live="polite"></section>
+      <section class="card">
+        <h2>Log income</h2>
+        <p class="help">It counts in the month of the date, unless you spread it.</p>
+        <form id="log">
+          <label for="amount">Amount</label>
+          <input id="amount" class="amount" name="amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required />
+
+          <label for="source">Source</label>
+          <input id="source" name="source" type="text" placeholder="Where it came from" required />
+
+          <label id="cat-label">Category</label>
+          <div class="chips" id="chips" role="group" aria-labelledby="cat-label"></div>
+
+          <label for="date">Date</label>
+          <input id="date" name="date" type="date" required />
+
+          <button type="button" class="spread" id="spread-toggle" aria-expanded="false">Spread across months</button>
+          <div class="spread-panel" id="spread-panel" hidden>
+            <div class="segmented" id="durations" role="group" aria-label="Duration"></div>
+            <div class="segmented" id="split-type" role="group" aria-label="Split type" style="margin-top:8px"></div>
+            <div class="month-inputs" id="custom-months" hidden></div>
+            <p class="preview" id="split-preview"></p>
+          </div>
+
+          <button class="submit" id="submit" type="submit">Add income</button>
+          <p class="form-note" id="form-note"></p>
+        </form>
+      </section>
+      <section class="profile-view" aria-labelledby="profile-view-title">
+        <h2 id="profile-view-title">Account</h2>
+        <p class="profile-name" id="profile-view-name"></p>
+        <p class="profile-label" id="currency-view-label">Currency</p>
+        <div class="segmented" id="currency-view-choices" role="group" aria-labelledby="currency-view-label"></div>
+        <button type="button" class="text-btn sign-out" id="sign-out-view">Sign out</button>
+      </section>
+    </main>
+    <nav class="tabbar" id="tabbar" aria-label="Views">
+      <button type="button" data-view="dashboard" aria-label="Dashboard">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M8 17v-3"/><path d="M13 17V9"/><path d="M18 17V5"/></svg>
+      </button>
+      <button type="button" class="tab-add" data-view="log" aria-label="Log income">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <button type="button" data-view="profile" aria-label="Account">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </button>
+    </nav>
+  </div>
+  <footer>
+    <div class="wrap footer-inner">© 2026 Maxmilian Kunc</div>
+  </footer>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script type="module">
+    import { supabase } from "./client.js";
+    import { createLovableAuth } from "https://esm.sh/@lovable.dev/cloud-auth-js@1.1.2";
+
+    // Google sign-in is managed by Lovable Cloud (the Supabase project is Lovable's).
+    // Its OAuth broker lives at /~oauth on the Lovable-hosted app, so pages served
+    // anywhere else (GitHub Pages, local dev) send the broker request there.
+    const LOVABLE_APP_ORIGIN = "https://maxtracker.lovable.app";
+    const onLovableHost = /(^|\.)(lovable\.app|lovableproject\.com)$/i.test(window.location.hostname);
+    const lovableAuth = createLovableAuth(
+      onLovableHost ? {} : { oauthBrokerUrl: LOVABLE_APP_ORIGIN + "/~oauth/initiate" }
+    );
+
+    function todayIso() {
+      const now = new Date();
+      return now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+    }
+
+    const TODAY = todayIso();
+    const UNCATEGORIZED = "__none";
+    const FILTER_KEY = "incomeflow:view-filter";
+
+    function loadFilter() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(FILTER_KEY) || "[]");
+        return Array.isArray(saved) ? saved.filter((id) => typeof id === "string") : [];
+      } catch {
+        return [];
+      }
+    }
+    function saveFilter() {
+      try { localStorage.setItem(FILTER_KEY, JSON.stringify(state.filter)); } catch {}
+    }
+    const CURRENCIES = ["CZK", "EUR", "USD"];
+
+    const state = {
+      userId: null,
+      currency: "CZK",
+      categories: [],
+      category: null,
+      viewMonth: TODAY.slice(0, 7),
+      filter: loadFilter(),
+      openId: null,
+      editId: null,
+      editSource: "",
+      editAmount: "",
+      flash: false,
+      saving: false,
+      entries: []
+    };
+
+    const form = {
+      spread: false,
+      months: 3,
+      type: "equal",
+      custom: []
+    };
+
+    const monthEl = document.getElementById("month");
+    const chipsEl = document.getElementById("chips");
+    const amountEl = document.getElementById("amount");
+    const sourceEl = document.getElementById("source");
+    const dateEl = document.getElementById("date");
+    const spreadToggle = document.getElementById("spread-toggle");
+    const spreadPanel = document.getElementById("spread-panel");
+    const durationsEl = document.getElementById("durations");
+    const typeEl = document.getElementById("split-type");
+    const customEl = document.getElementById("custom-months");
+    const previewEl = document.getElementById("split-preview");
+    const submitEl = document.getElementById("submit");
+    const noteEl = document.getElementById("form-note");
+    const toastEl = document.getElementById("toast");
+
+    dateEl.value = TODAY;
+
+    function money(n) {
+      const value = Math.round(n * 100) / 100;
+      const format = new Intl.NumberFormat("cs-CZ", {
+        style: "currency",
+        currency: state.currency,
+        maximumFractionDigits: Number.isInteger(value) ? 0 : 2
+      });
+      return format.format(value);
+    }
+    function yearTotal(year) {
+      let sum = 0;
+      for (let month = 1; month <= 12; month++) {
+        sum += monthTotal(year + "-" + String(month).padStart(2, "0"));
+      }
+      return round2(sum);
+    }
+    function renderYear() {
+      const year = TODAY.slice(0, 4);
+      document.getElementById("year-label").textContent = year + (state.filter.length ? " total · filtered" : " total");
+      document.getElementById("year-total").textContent = money(yearTotal(year));
+    }
+    function monthKey(iso) { return iso.slice(0, 7); }
+    function addMonths(ym, n) {
+      const [y, m] = ym.split("-").map(Number);
+      const d = new Date(y, m - 1 + n, 1);
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+    }
+    function monthDate(ym) {
+      const [y, m] = ym.split("-").map(Number);
+      return new Date(y, m - 1, 1);
+    }
+    function formatMonth(ym, options) {
+      return new Intl.DateTimeFormat(undefined, options).format(monthDate(ym));
+    }
+    function formatDay(iso) {
+      const [y, m, d] = iso.split("-").map(Number);
+      return new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "short" }).format(new Date(y, m - 1, d));
+    }
+    function weekday(iso) {
+      const [y, m, d] = iso.split("-").map(Number);
+      return new Intl.DateTimeFormat(undefined, { weekday: "long" }).format(new Date(y, m - 1, d));
+    }
+    function round2(n) { return Math.round(n * 100) / 100; }
+
+    function getEqualSplitAmounts(total, months) {
+      const safeMonths = Math.max(1, months);
+      const totalCents = Math.round(total * 100);
+      const base = Math.floor(totalCents / safeMonths);
+      const remainder = totalCents - base * safeMonths;
+      return Array.from({ length: safeMonths }, (_, index) => (base + (index === safeMonths - 1 ? remainder : 0)) / 100);
+    }
+
+    function scaleCustomAmounts(monthlyAmounts, nextAmount) {
+      const currentTotal = monthlyAmounts.reduce((sum, value) => sum + value, 0);
+      if (currentTotal <= 0) return getEqualSplitAmounts(nextAmount, monthlyAmounts.length || 1);
+      let runningTotal = 0;
+      return monthlyAmounts.map((value, index) => {
+        if (index === monthlyAmounts.length - 1) return round2(nextAmount - runningTotal);
+        const scaled = round2((value / currentTotal) * nextAmount);
+        runningTotal += scaled;
+        return scaled;
+      });
+    }
+
+    function parseMonthlyAmounts(value) {
+      if (!Array.isArray(value)) return null;
+      const parsed = value.map((item) => Number(item)).filter((item) => Number.isFinite(item)).map((item) => round2(item));
+      return parsed.length ? parsed : null;
+    }
+
+    function currencyEntries() {
+      return state.entries.filter((entry) => entry.currency === state.currency);
+    }
+
+    function visibleEntries() {
+      const entries = currencyEntries();
+      if (!state.filter.length) return entries;
+      return entries.filter((entry) => state.filter.includes(entry.categoryId || UNCATEGORIZED));
+    }
+
+    function pruneFilter() {
+      const known = new Set(state.categories.map((category) => category.id));
+      known.add(UNCATEGORIZED);
+      const next = state.filter.filter((id) => known.has(id));
+      if (next.length !== state.filter.length) {
+        state.filter = next;
+        saveFilter();
+      }
+    }
+
+    function renderFilter() {
+      const options = state.categories.map((category) => [category.id, category.name]);
+      if (currencyEntries().some((entry) => !entry.categoryId)) options.push([UNCATEGORIZED, "Uncategorized"]);
+      if (!options.length) return null;
+      const bar = el("div", { class: "view-filter", role: "group", "aria-label": "Show categories" });
+      bar.append(el("span", { class: "filter-label" }, ["Show"]));
+      const pick = (next) => {
+        state.filter = next;
+        saveFilter();
+        state.openId = null;
+        renderMonth();
+      };
+      bar.append(el("button", {
+        type: "button",
+        "aria-pressed": state.filter.length ? "false" : "true",
+        onclick: () => pick([])
+      }, ["All"]));
+      options.forEach(([id, name]) => {
+        const active = state.filter.includes(id);
+        bar.append(el("button", {
+          type: "button",
+          "aria-pressed": active ? "true" : "false",
+          onclick: () => pick(active ? state.filter.filter((item) => item !== id) : [...state.filter, id])
+        }, [name]));
+      });
+      return bar;
+    }
+
+    function categoryName(id) {
+      if (!id) return "Uncategorized";
+      const found = state.categories.find((category) => category.id === id);
+      return found ? found.name : "Unknown";
+    }
+
+    function parts(entry) {
+      const start = monthKey(entry.date);
+      const n = Math.max(1, entry.splitMonths || 1);
+      const custom = entry.splitType === "custom" ? parseMonthlyAmounts(entry.monthlyAmounts) : null;
+      const amounts = custom && custom.length === n ? custom : getEqualSplitAmounts(entry.amount, n);
+      return amounts.map((amount, index) => ({ month: addMonths(start, index), amount: round2(amount) }));
+    }
+
+    function monthTotal(ym) {
+      return round2(visibleEntries().reduce((sum, entry) => {
+        const hit = parts(entry).find((part) => part.month === ym);
+        return sum + (hit ? hit.amount : 0);
+      }, 0));
+    }
+
+    function yearsShown() {
+      const years = new Set([TODAY.slice(0, 4)]);
+      visibleEntries().forEach((entry) => parts(entry).forEach((part) => years.add(part.month.slice(0, 4))));
+      return [...years].sort();
+    }
+
+    function monthsShown() {
+      const keys = new Set([TODAY.slice(0, 7)]);
+      visibleEntries().forEach((entry) => parts(entry).forEach((part) => keys.add(part.month)));
+      return [...keys].sort();
+    }
+
+    function el(tag, attrs, children) {
+      const node = document.createElement(tag);
+      Object.entries(attrs || {}).forEach(([key, value]) => {
+        if (key === "class") node.className = value;
+        else if (key.startsWith("on") && typeof value === "function") node.addEventListener(key.slice(2), value);
+        else if (value != null && value !== false) node.setAttribute(key, value === true ? "" : value);
+      });
+      (children || []).forEach((child) => node.append(child instanceof Node ? child : document.createTextNode(String(child))));
+      return node;
+    }
+
+    function listSentence(items) {
+      if (items.length === 1) return items[0];
+      if (items.length === 2) return items[0] + " and " + items[1];
+      return items.slice(0, -1).join(", ") + ", and " + items[items.length - 1];
+    }
+
+    function renderMonth() {
+      const ym = state.viewMonth;
+      const total = monthTotal(ym);
+      const rows = visibleEntries()
+        .map((entry) => ({ entry, part: parts(entry).find((part) => part.month === ym) }))
+        .filter((row) => row.part)
+        .sort((a, b) => b.entry.date.localeCompare(a.entry.date));
+      const shared = rows.filter((row) => row.entry.splitMonths > 1);
+      const sharedSum = round2(shared.reduce((sum, row) => sum + row.part.amount, 0));
+
+      monthEl.replaceChildren();
+      const viewYear = ym.slice(0, 4);
+      const years = el("div", { class: "months", role: "tablist", "aria-label": "Year" });
+      yearsShown().forEach((year) => {
+        const selected = year === viewYear;
+        years.append(el("button", {
+          type: "button",
+          role: "tab",
+          "aria-selected": selected ? "true" : "false",
+          onclick: () => {
+            if (ym.startsWith(year)) return;
+            const inYear = monthsShown().filter((key) => key.startsWith(year));
+            state.viewMonth = inYear.at(-1) || year + "-01";
+            state.openId = null;
+            renderMonth();
+          }
+        }, [
+          el("span", { class: "m-name" }, [year]),
+          el("span", { class: "m-amt" }, [money(yearTotal(year))])
+        ]));
+      });
+      monthEl.append(years);
+      const switcher = el("div", { class: "months", role: "tablist", "aria-label": "Month" });
+      Array.from({ length: 12 }, (_, i) => viewYear + "-" + String(i + 1).padStart(2, "0")).forEach((key) => {
+        const selected = key === ym;
+        switcher.append(el("button", {
+          type: "button",
+          role: "tab",
+          "aria-selected": selected ? "true" : "false",
+          onclick: () => { state.viewMonth = key; state.openId = null; renderMonth(); }
+        }, [
+          el("span", { class: "m-name" }, [
+            el("span", { class: "m-long" }, [formatMonth(key, { month: "long" })]),
+            el("span", { class: "m-short" }, [formatMonth(key, { month: "short" })])
+          ]),
+          el("span", { class: "m-amt" }, [money(monthTotal(key))])
+        ]));
+      });
+      monthEl.append(switcher);
+
+      const hero = el("section", { class: "hero" });
+      hero.append(el("p", { class: "eyebrow" }, [formatMonth(ym, { month: "long", year: "numeric" })]));
+      const figure = el("p", { class: state.flash ? "figure flash num" : "figure num" }, [money(total)]);
+      hero.append(figure);
+      state.flash = false;
+
+      let meaning = state.filter.length ? "Nothing in these categories counts in this month." : "Nothing counts in this month yet.";
+      if (rows.length && shared.length) {
+        const names = shared.map((row) => row.entry.source);
+        meaning = money(sharedSum) + " is " + listSentence(names) + ", shared with other months.";
+      } else if (rows.length) {
+        meaning = "Everything here was logged in " + formatMonth(ym, { month: "long" }) + ".";
+      }
+      hero.append(el("p", { class: "meaning" }, [meaning]));
+      hero.append(el("button", {
+        type: "button",
+        class: "jump",
+        onclick: () => {
+          if (phoneQuery.matches) { setView("log"); return; }
+          document.getElementById("log").scrollIntoView({ behavior: "smooth", block: "start" });
+          amountEl.focus({ preventScroll: true });
+        }
+      }, ["Log income ↓"]));
+      monthEl.append(hero);
+
+      const head = el("div", { class: "list-head" }, [
+        el("h2", {}, ["Counted in " + formatMonth(ym, { month: "long" })]),
+        el("span", {}, [rows.length ? rows.length + (rows.length === 1 ? " entry" : " entries") : ""])
+      ]);
+      monthEl.append(head);
+      const filterBar = renderFilter();
+      if (filterBar) monthEl.append(filterBar);
+
+      const ledger = el("div", { class: "ledger" });
+      if (!rows.length) {
+        ledger.append(el("p", { class: "empty" }, [state.filter.length
+          ? "No entries in the selected categories this month."
+          : "Use Log income. A payment lands here as soon as you add it."]));
+        monthEl.append(ledger);
+        renderYear();
+        return;
+      }
+
+      rows.forEach(({ entry, part }) => {
+        const open = state.openId === entry.id && entry.splitMonths > 1;
+        const editing = state.editId === entry.id;
+        const button = el("div", { class: open ? "entry open" : "entry" });
+        const sourceNode = editing
+          ? el("input", {
+            type: "text",
+            class: "entry-edit",
+            value: state.editSource,
+            "aria-label": "Source",
+            oninput: (event) => { state.editSource = event.target.value; }
+          })
+          : el("span", { class: "source" }, [entry.source]);
+        const top = el("div", { class: "entry-top" }, [
+          el("span", { class: "badge" }, [categoryName(entry.categoryId)]),
+          sourceNode
+        ]);
+        let meta = formatDay(entry.date);
+        if (entry.splitMonths > 1) {
+          const index = parts(entry).findIndex((item) => item.month === ym) + 1;
+          meta = "Started " + formatDay(entry.date) + " · month " + index + " of " + entry.splitMonths + " · " + money(entry.amount) + " total";
+        }
+        const actions = el("span", { class: "actions" });
+        const metaLine = el("p", { class: "meta" }, [meta, actions]);
+        if (entry.splitMonths > 1 && !editing) {
+          actions.append(el("button", {
+            type: "button",
+            class: "text-btn",
+            onclick: (event) => {
+              event.stopPropagation();
+              state.openId = open ? null : entry.id;
+              renderMonth();
+            }
+          }, [open ? "Hide months" : "Months"]));
+        }
+        if (editing) {
+          actions.append(el("button", {
+            type: "button",
+            class: "text-btn",
+            onclick: (event) => { event.stopPropagation(); saveEdit(entry); }
+          }, ["Save"]));
+          actions.append(el("button", {
+            type: "button",
+            class: "text-btn",
+            onclick: (event) => {
+              event.stopPropagation();
+              state.editId = null;
+              renderMonth();
+            }
+          }, ["Cancel"]));
+        } else {
+          actions.append(el("button", {
+            type: "button",
+            class: "text-btn",
+            onclick: (event) => {
+              event.stopPropagation();
+              state.editId = entry.id;
+              state.editSource = entry.source;
+              state.editAmount = String(entry.amount);
+              state.openId = null;
+              renderMonth();
+            }
+          }, ["Edit"]));
+          actions.append(el("button", {
+            type: "button",
+            class: "text-btn danger",
+            onclick: (event) => {
+              event.stopPropagation();
+              removeEntry(entry.id);
+            }
+          }, ["Remove"]));
+        }
+        const main = el("div", { class: "entry-main" }, [top, metaLine]);
+        if (entry.splitMonths > 1 && !editing) {
+          main.addEventListener("click", () => {
+            state.openId = open ? null : entry.id;
+            renderMonth();
+          });
+          main.style.cursor = "pointer";
+        }
+        const amountNode = editing
+          ? el("input", {
+            type: "number",
+            class: "entry-edit",
+            min: "0",
+            step: "0.01",
+            value: state.editAmount,
+            "aria-label": "Amount",
+            oninput: (event) => { state.editAmount = event.target.value; }
+          })
+          : el("div", { class: "money num" }, [money(part.amount)]);
+        button.append(main, amountNode);
+        if (open) {
+          button.append(el("div", { class: "split-detail" }, parts(entry).map((item) => el("div", { class: item.month === ym ? "slice here" : "slice" }, [
+            el("b", {}, [money(item.amount)]),
+            el("span", {}, [formatMonth(item.month, { month: "long" })])
+          ]))));
+        }
+        ledger.append(button);
+      });
+      monthEl.append(ledger);
+      renderYear();
+    }
+
+    function renderChips() {
+      chipsEl.replaceChildren();
+      state.categories.forEach((category) => {
+        chipsEl.append(el("button", {
+          type: "button",
+          class: "chip",
+          "aria-pressed": state.category === category.id ? "true" : "false",
+          onclick: () => { state.category = category.id; renderChips(); }
+        }, [category.name]));
+      });
+      const adding = state.category === "__new";
+      const plus = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      plus.setAttribute("width", "16");
+      plus.setAttribute("height", "16");
+      plus.setAttribute("viewBox", "0 0 24 24");
+      plus.setAttribute("fill", "none");
+      plus.setAttribute("stroke", "currentColor");
+      plus.setAttribute("stroke-width", "2");
+      plus.setAttribute("stroke-linecap", "round");
+      plus.setAttribute("aria-hidden", "true");
+      const plusPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      plusPath.setAttribute("d", "M12 5v14M5 12h14");
+      plus.append(plusPath);
+      chipsEl.append(el("button", {
+        type: "button",
+        class: "chip chip-add",
+        "aria-label": "New category",
+        "aria-pressed": adding ? "true" : "false",
+        onclick: () => { state.category = "__new"; renderChips(); }
+      }, [plus]));
+      if (adding) {
+        const input = el("input", { type: "text", placeholder: "e.g. Remote work", "aria-label": "New category" });
+        input.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter") return;
+          event.preventDefault();
+          const name = input.value.trim();
+          if (!name) return;
+          addCategory(name);
+        });
+        chipsEl.append(input);
+        input.focus();
+      }
+    }
+
+    function draftParts(amount) {
+      const start = monthKey(dateEl.value || TODAY);
+      const n = form.months;
+      if (!form.spread || !(amount > 0)) return [];
+      if (form.type === "custom") {
+        return form.custom.slice(0, n).map((value, i) => ({ month: addMonths(start, i), amount: round2(Number(value) || 0) }));
+      }
+      return getEqualSplitAmounts(amount, n).map((part, i) => ({ month: addMonths(start, i), amount: round2(part) }));
+    }
+
+    function syncCustomLength() {
+      while (form.custom.length < form.months) form.custom.push("");
+      form.custom = form.custom.slice(0, form.months);
+    }
+
+    function renderSplitControls() {
+      spreadToggle.setAttribute("aria-expanded", form.spread ? "true" : "false");
+      spreadToggle.textContent = form.spread ? "Counting across months" : "Spread across months";
+      spreadPanel.hidden = !form.spread;
+      durationsEl.replaceChildren();
+      [2, 3, 4, 6].forEach((n) => {
+        durationsEl.append(el("button", {
+          type: "button",
+          "aria-pressed": form.months === n ? "true" : "false",
+          onclick: () => { form.months = n; syncCustomLength(); renderSplitControls(); }
+        }, [n + " mo"]));
+      });
+      typeEl.replaceChildren();
+      [["equal", "Equal split"], ["custom", "Uneven"]].forEach(([value, label]) => {
+        typeEl.append(el("button", {
+          type: "button",
+          "aria-pressed": form.type === value ? "true" : "false",
+          onclick: () => { form.type = value; syncCustomLength(); renderSplitControls(); }
+        }, [label]));
+      });
+      const showCustom = form.spread && form.type === "custom";
+      customEl.hidden = !showCustom;
+      customEl.replaceChildren();
+      if (showCustom) {
+        const start = monthKey(dateEl.value || TODAY);
+        for (let i = 0; i < form.months; i++) {
+          const input = el("input", {
+            type: "number",
+            min: "0",
+            step: "0.01",
+            placeholder: "0.00",
+            "aria-label": formatMonth(addMonths(start, i), { month: "long" })
+          });
+          input.value = form.custom[i];
+          input.addEventListener("input", () => { form.custom[i] = input.value; updateSubmit(); });
+          customEl.append(el("label", {}, [
+            formatMonth(addMonths(start, i), { month: "long" }),
+            input
+          ]));
+        }
+      }
+      updateSubmit();
+    }
+
+    function updateSubmit() {
+      const amount = Number(amountEl.value);
+      const source = sourceEl.value.trim();
+      submitEl.textContent = "Add income";
+      const planned = draftParts(amount);
+      let note = "";
+      if (form.spread && amount > 0) {
+        const names = planned.map((part) => formatMonth(part.month, { month: "long" }));
+        if (form.type === "equal") {
+          previewEl.className = "preview";
+          const same = planned.every((part) => part.amount === planned[0].amount);
+          previewEl.textContent = same
+            ? "Equal split. " + money(planned[0].amount) + " in " + listSentence(names) + "."
+            : "Equal split. " + planned.map((part) => money(part.amount) + " in " + formatMonth(part.month, { month: "long" })).join(", ") + ".";
+        } else {
+          const sum = round2(planned.reduce((total, part) => total + part.amount, 0));
+          const left = round2(amount - sum);
+          previewEl.className = left === 0 ? "preview" : "preview warn";
+          previewEl.textContent = left === 0
+            ? "These months add up to " + money(amount) + "."
+            : money(Math.abs(left)) + (left > 0 ? " still to assign." : " over the amount.");
+          if (left !== 0) note = "Custom month amounts must match the total amount exactly.";
+        }
+      } else {
+        previewEl.textContent = "";
+      }
+      if (!note && amountEl.value && !(amount > 0)) note = "Enter an amount greater than zero.";
+      noteEl.textContent = note;
+      submitEl.disabled = !(amount > 0) || !source || note !== "";
+    }
+
+    function toast(title, detail) {
+      toastEl.replaceChildren(el("strong", {}, [title]), el("span", {}, [detail]));
+      toastEl.classList.add("show");
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => toastEl.classList.remove("show"), 2800);
+    }
+
+    function mapEntry(row) {
+      return {
+        id: row.id,
+        source: row.source,
+        categoryId: row.category_id,
+        amount: Number(row.amount),
+        currency: row.currency,
+        date: String(row.date).slice(0, 10),
+        splitMonths: row.split_months,
+        splitType: row.split_type,
+        monthlyAmounts: parseMonthlyAmounts(row.monthly_amounts)
+      };
+    }
+
+    async function loadTracker(userId) {
+      const [categoriesResponse, entriesResponse] = await Promise.all([
+        supabase.from("categories").select("*").eq("user_id", userId).order("name"),
+        supabase.from("income_entries").select("*").eq("user_id", userId).order("date", { ascending: false })
+      ]);
+      if (categoriesResponse.error || entriesResponse.error) {
+        toast("Could not load your data", categoriesResponse.error?.message || entriesResponse.error?.message || "Please refresh and try again.");
+        return;
+      }
+      state.categories = categoriesResponse.data || [];
+      state.entries = (entriesResponse.data || []).map(mapEntry);
+      if (state.category && !state.categories.some((category) => category.id === state.category)) state.category = null;
+      pruneFilter();
+      renderChips();
+      renderMonth();
+      updateSubmit();
+    }
+
+    async function addCategory(name) {
+      if (!state.userId) return;
+      const existing = state.categories.find((category) => category.name.toLowerCase() === name.toLowerCase());
+      if (existing) {
+        state.category = existing.id;
+        renderChips();
+        return;
+      }
+      const { data, error } = await supabase.from("categories").insert({ name, user_id: state.userId }).select("*").single();
+      if (error) {
+        toast("Could not create category", error.message);
+        return;
+      }
+      state.categories = [...state.categories, data].sort((a, b) => a.name.localeCompare(b.name));
+      state.category = data.id;
+      renderChips();
+      toast("Category added", data.name);
+    }
+
+    async function removeEntry(id) {
+      const entry = state.entries.find((item) => item.id === id);
+      const { error } = await supabase.from("income_entries").delete().eq("id", id);
+      if (error) {
+        toast("Could not delete entry", error.message);
+        return;
+      }
+      if (state.openId === id) state.openId = null;
+      if (state.editId === id) state.editId = null;
+      await loadTracker(state.userId);
+      toast("Entry deleted", entry ? entry.source : "");
+    }
+
+    async function saveEdit(entry) {
+      const source = state.editSource.trim();
+      const amount = round2(Number(state.editAmount));
+      if (!source || !(amount > 0)) {
+        toast("Could not update entry", "Enter a source and an amount greater than zero.");
+        return;
+      }
+      const payload = { source, amount };
+      if (entry.splitType === "custom" && entry.monthlyAmounts?.length) {
+        payload.monthly_amounts = scaleCustomAmounts(entry.monthlyAmounts, amount);
+      }
+      const { error } = await supabase.from("income_entries").update(payload).eq("id", entry.id);
+      if (error) {
+        toast("Could not update entry", error.message);
+        return;
+      }
+      state.editId = null;
+      await loadTracker(state.userId);
+      toast("Entry updated", source);
+    }
+
+    document.getElementById("log").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const amount = round2(Number(amountEl.value));
+      const source = sourceEl.value.trim();
+      if (!(amount > 0) || !source || submitEl.disabled || state.saving || !state.userId) return;
+      const splitMonths = form.spread ? form.months : 1;
+      const splitType = form.spread ? form.type : "equal";
+      const monthlyAmounts = splitType === "custom" ? draftParts(amount).map((part) => part.amount) : null;
+      state.saving = true;
+      submitEl.disabled = true;
+      const { error } = await supabase.from("income_entries").insert({
+        amount,
+        category_id: state.category && state.category !== "__new" ? state.category : null,
+        currency: state.currency,
+        date: dateEl.value || TODAY,
+        monthly_amounts: monthlyAmounts,
+        source,
+        split_months: splitMonths,
+        split_type: splitType,
+        user_id: state.userId
+      });
+      state.saving = false;
+      if (error) {
+        toast("Could not save income", error.message);
+        updateSubmit();
+        return;
+      }
+      state.viewMonth = monthKey(dateEl.value || TODAY);
+      state.openId = null;
+      state.flash = true;
+      amountEl.value = "";
+      sourceEl.value = "";
+      form.spread = false;
+      renderSplitControls();
+      await loadTracker(state.userId);
+      updateSubmit();
+      if (phoneQuery.matches) setView("dashboard");
+      else amountEl.focus();
+      toast("Income saved", money(amount) + " saved.");
+    });
+
+    [amountEl, sourceEl, dateEl].forEach((input) => input.addEventListener("input", () => {
+      if (input === dateEl) renderSplitControls();
+      else updateSubmit();
+    }));
+    spreadToggle.addEventListener("click", () => {
+      form.spread = !form.spread;
+      syncCustomLength();
+      renderSplitControls();
+    });
+
+    const profileBtn = document.getElementById("profile-btn");
+    const profilePanel = document.getElementById("profile-panel");
+    const currencyChoices = document.getElementById("currency-choices");
+
+    function renderCurrencies() {
+      [currencyChoices, document.getElementById("currency-view-choices")].forEach((group) => {
+        group.replaceChildren();
+        CURRENCIES.forEach((code) => {
+          group.append(el("button", {
+            type: "button",
+            "aria-pressed": state.currency === code ? "true" : "false",
+            onclick: () => {
+              state.currency = code;
+              renderCurrencies();
+              renderMonth();
+              updateSubmit();
+            }
+          }, [code]));
+        });
+      });
+    }
+
+    // Phone views (bottom bar). On wider screens every section stays visible.
+    const phoneQuery = window.matchMedia("(max-width: 720px)");
+    function setView(view) {
+      appEl.dataset.view = view;
+      document.querySelectorAll("#tabbar button").forEach((button) => {
+        if (button.dataset.view === view) button.setAttribute("aria-current", "page");
+        else button.removeAttribute("aria-current");
+      });
+      if (!phoneQuery.matches) return;
+      window.scrollTo(0, 0);
+      if (view === "log") amountEl.focus({ preventScroll: true });
+    }
+    document.querySelectorAll("#tabbar button").forEach((button) => {
+      button.addEventListener("click", () => setView(button.dataset.view));
+    });
+
+    profileBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const open = profilePanel.hidden;
+      profilePanel.hidden = !open;
+      profileBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+    document.addEventListener("click", (event) => {
+      if (profilePanel.hidden || event.target.closest(".profile")) return;
+      profilePanel.hidden = true;
+      profileBtn.setAttribute("aria-expanded", "false");
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" || profilePanel.hidden) return;
+      profilePanel.hidden = true;
+      profileBtn.setAttribute("aria-expanded", "false");
+    });
+
+    const gate = document.getElementById("gate");
+    const gateStatus = document.getElementById("gate-status");
+    const authBox = document.getElementById("auth-box");
+    const authNote = document.getElementById("auth-note");
+    const authSubmit = document.getElementById("auth-submit");
+    const emailEl = document.getElementById("email");
+    const passwordEl = document.getElementById("password");
+    const appEl = document.getElementById("app");
+    const headerTools = document.getElementById("header-tools");
+    let authMode = "signin";
+
+    function setAuthMode(mode) {
+      authMode = mode;
+      document.getElementById("auth-signin").setAttribute("aria-pressed", mode === "signin" ? "true" : "false");
+      document.getElementById("auth-signup").setAttribute("aria-pressed", mode === "signup" ? "true" : "false");
+      authSubmit.textContent = mode === "signup" ? "Create account" : "Sign in";
+      passwordEl.setAttribute("autocomplete", mode === "signup" ? "new-password" : "current-password");
+      authNote.textContent = "";
+    }
+
+    function showSignedOut(message) {
+      state.userId = null;
+      state.entries = [];
+      state.categories = [];
+      state.category = null;
+      appEl.hidden = true;
+      headerTools.hidden = true;
+      document.body.classList.remove("signed-in");
+      gate.hidden = false;
+      gateStatus.textContent = message || "Your income stays on your account.";
+      authBox.hidden = false;
+    }
+
+    function showSignedIn(session) {
+      const sameUser = state.userId === session.user.id && !appEl.hidden;
+      state.userId = session.user.id;
+      const email = session.user.email || "";
+      document.getElementById("profile-name").textContent = email;
+      document.getElementById("profile-view-name").textContent = email;
+      profileBtn.textContent = email.slice(0, 2).toUpperCase() || "·";
+      if (sameUser) return;
+      gate.hidden = true;
+      authBox.hidden = true;
+      appEl.hidden = false;
+      headerTools.hidden = false;
+      document.body.classList.add("signed-in");
+      setView("dashboard");
+      renderCurrencies();
+      renderChips();
+      renderSplitControls();
+      renderMonth();
+      updateSubmit();
+      loadTracker(session.user.id);
+    }
+
+    // One fixed return address for sign-in, however the app was opened
+    // (Safari, home-screen app, with or without index.html): the app's folder URL,
+    // e.g. https://maxkunc.github.io/maxtracker/design/
+    function appReturnUrl() {
+      return new URL("./", window.location.href).href;
+    }
+
+    document.getElementById("google").addEventListener("click", async () => {
+      const button = document.getElementById("google");
+      button.disabled = true;
+      authNote.textContent = "";
+      let message = "";
+      try {
+        const result = await lovableAuth.signInWithOAuth("google", { redirect_uri: appReturnUrl() });
+        if (result.redirected) return;
+        if (result.error) throw result.error;
+        const { error } = await supabase.auth.setSession(result.tokens);
+        if (error) throw error;
+      } catch (error) {
+        message = error instanceof Error ? error.message : "Please try again.";
+      } finally {
+        button.disabled = false;
+      }
+      if (message) {
+        authNote.textContent = message;
+        toast("Could not continue with Gmail", message);
+      }
+    });
+
+    // After the redirect, the broker hands the session back in the URL.
+    // Store it, then strip the tokens from the address bar.
+    async function consumeOAuthReturn() {
+      const params = new URLSearchParams(window.location.hash.slice(1) || window.location.search);
+      const accessToken = params.get("access_token");
+      const refreshToken = params.get("refresh_token");
+      const failure = params.get("error_description") || params.get("error");
+      if (!accessToken && !failure) return;
+      window.history.replaceState(null, "", appReturnUrl());
+      if (failure) {
+        authNote.textContent = failure;
+        toast("Could not continue with Gmail", failure);
+        return;
+      }
+      if (!refreshToken) return;
+      const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+      if (error) {
+        authNote.textContent = error.message;
+        toast("Could not continue with Gmail", error.message);
+      }
+    }
+
+    document.getElementById("auth-signin").addEventListener("click", () => setAuthMode("signin"));
+    document.getElementById("auth-signup").addEventListener("click", () => setAuthMode("signup"));
+    document.getElementById("auth").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      authSubmit.disabled = true;
+      authNote.textContent = "";
+      const email = emailEl.value.trim();
+      const password = passwordEl.value;
+      const result = authMode === "signup"
+        ? await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: appReturnUrl() }
+        })
+        : await supabase.auth.signInWithPassword({ email, password });
+      authSubmit.disabled = false;
+      if (result.error) {
+        authNote.textContent = result.error.message;
+        toast(authMode === "signup" ? "Could not create account" : "Could not sign in", result.error.message);
+        return;
+      }
+      if (authMode === "signup" && !result.data.session) {
+        authNote.textContent = "Account created. Check your email if a confirmation link is required.";
+        toast("Account created", "Check your email if a confirmation link is required.");
+        return;
+      }
+      passwordEl.value = "";
+      toast(authMode === "signup" ? "Account created" : "Signed in", "Your income is ready.");
+    });
+    document.getElementById("sign-out-view").addEventListener("click", () => document.getElementById("sign-out").click());
+    document.getElementById("sign-out").addEventListener("click", async () => {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        toast("Could not sign out", error.message);
+        return;
+      }
+      profilePanel.hidden = true;
+      profileBtn.setAttribute("aria-expanded", "false");
+      showSignedOut("Signed out.");
+      toast("Signed out", "");
+    });
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user?.id) showSignedIn(session);
+      else showSignedOut();
+    });
+    consumeOAuthReturn().catch(() => {}).then(() => supabase.auth.getSession()).then(({ data }) => {
+      if (data.session?.user?.id) showSignedIn(data.session);
+      else showSignedOut();
+    });
+
+    if ("serviceWorker" in navigator && !["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    }
+  </script>
+</body>
+</html>

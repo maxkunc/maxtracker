@@ -1,0 +1,381 @@
+<!doctype html>
+<!-- data-type: software. site-kind: software. IncomeFlow, an income tracker.
+     deal: hero centred, nav nav-centre, close close-type, footer footer-dark, rhythm dark-band,
+     buttons pill, mark stack, palette white-signal-red, type geist, radius sharp, ground sage,
+     grounds hero bg-ruled, month dark-band, steps bg-band, effect fluted-glass on #splits,
+     moment cursor-spotlight on the hero window. -->
+<html lang="en" data-type="software" data-radius="sharp" data-buttons="text" data-motion>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IncomeFlow: an income tracker for freelancers</title>
+<meta name="description" content="IncomeFlow logs a payment once and counts it in that month, or across the months you spread it over.">
+<meta name="site-kind" content="software">
+<meta name="page-type" content="software">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/system.css">
+<link rel="stylesheet" href="assets/ui/cards.css">
+<link rel="stylesheet" href="assets/motion/motion.css">
+<link rel="stylesheet" href="assets/backgrounds/backgrounds.css">
+<link rel="stylesheet" href="assets/layout/layout.css">
+<link rel="stylesheet" href="assets/icons/icon.css">
+<link rel="stylesheet" href="assets/ui/base.css">
+<link rel="stylesheet" href="assets/ui/window/fragment.css">
+<link rel="stylesheet" href="assets/ui/notify/fragment.css">
+<link rel="stylesheet" href="assets/ui/checklist/fragment.css">
+<link rel="stylesheet" href="assets/ui/stat/fragment.css">
+<script>document.documentElement.classList.add('mo-js');setTimeout(()=>document.documentElement.classList.add('mo-safe'),2500)</script>
+<link rel="modulepreload" href="assets/moments/moments.js">
+<link rel="modulepreload" href="assets/moments/lib.js">
+<link rel="modulepreload" href="assets/moments/cursor-spotlight/moment.js">
+<script src="assets/backgrounds/backgrounds.js"></script>
+<style>
+:root {
+  --p-bg: transparent; --p-surface: transparent; --p-ink: #ffffff; --p-muted: rgba(255, 255, 255, 0.72);
+  --p-accent: #ffffff; --p-accent-ink: #000000; --p-action: transparent; --p-action-ink: #ffffff;
+  --p-inv-bg: transparent; --p-inv-surface: transparent; --p-inv-ink: #ffffff; --p-inv-muted: rgba(255, 255, 255, 0.72);
+  --p-inv-accent: #ffffff; --p-inv-accent-ink: #000000; --p-inv-action: transparent; --p-inv-action-ink: #ffffff;
+  --font-display: "DM Sans", system-ui, sans-serif;
+  --font-text: "DM Sans", system-ui, sans-serif;
+  --font-mono: "DM Sans", system-ui, sans-serif;
+  --display-weight: 500;
+  --display-tracking: -0.035em;
+  --display-tracking-xl: -0.045em;
+  --line: #ffffff;
+}
+.hero--centred .hero__c { justify-items: start; text-align: start; margin-inline: 0; max-width: none; width: 100%; }
+.hero--centred h1, .hero--centred .hero__lead { max-width: 28ch; }
+.hero--centred .btn-row { justify-content: flex-start; }
+.hero--centred .hero__window > .ly-piece { height: auto; overflow: visible; }
+.ui-win .ui-win__age { display: none; }
+.ui-win .ui-win__row { grid-template-columns: 28px minmax(88px, 1.2fr) minmax(0, 1.4fr) 76px; }
+.split-list { list-style: none; margin: 24px 0 0; padding: 0; display: grid; }
+.split-list li { display: flex; justify-content: space-between; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); font-size: 16px; }
+.app.ui { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); margin-top: var(--s-7); background: var(--u-bg); border: 1px solid var(--u-border); border-radius: var(--u-r); box-shadow: var(--u-shadow); }
+.app > .app__pane { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+.app > .app__pane + .app__pane { border-left: 1px solid var(--u-line); }
+.app > .app__pane > .ui-panel { width: 100%; border: 0; border-radius: 0; box-shadow: none; }
+.app > .app__pane::after { content: ""; position: absolute; inset: auto 0 0 0; height: 64px; background: linear-gradient(transparent, var(--u-bg)); pointer-events: none; }
+#steps .panel { --p-h: 220px; height: auto; overflow: visible; }
+#splits .frame { --ratio: 0px !important; height: auto; min-height: 0; padding: 0; border: 0; background: transparent !important; }
+#splits .frame::before { content: none !important; display: none !important; padding: 0 !important; }
+#splits .stage, #splits .at-corner { position: relative; inset: auto; width: 100%; height: auto; }
+@media (max-width: 1023px) {
+  .closing__links .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .closing__links .span-6 { grid-column: 1 / -1; }
+  #splits .frame .ui-win { width: calc(100% + 72px); }
+  #steps .card { background: transparent; }
+}
+@media (max-width: 639px) {
+  .hero--centred .hero__c > .pill, .hero--centred .btn-row .btn, .hero--centred .btn-row .link { width: 100%; }
+  .hero--centred .ui-win__search { display: none; }
+  .split-list li:nth-child(n+4) { display: none; }
+  #splits .frame { min-height: 0; height: auto; max-height: none; overflow: visible; margin-top: 40px; }
+  .split-list li { padding: 8px 0; }
+  #steps .panel { --p-h: 220px; height: auto; overflow: visible; }
+}
+.month-sheet { padding: 28px 32px; display: grid; gap: 16px; }
+.month-sheet strong { font-family: var(--font-display); font-weight: 500; font-size: 56px; letter-spacing: -0.045em; line-height: 1; }
+.month-sheet ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.month-sheet li { display: flex; justify-content: space-between; gap: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--u-line); font-size: 16px; }
+@media (min-width: 1024px) and (max-width: 1279px) { .app.ui { grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); } }
+@media (max-width: 1023px) {
+  .app.ui { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .app > .app__pane--list { max-height: 252px; }
+  .app > .app__pane--list::after { display: none; }
+  .app .ui-win__side { display: none; }
+  .app .ui-win__body { grid-template-columns: minmax(0, 1fr); }
+  .app > .app__pane + .app__pane { border-left: 0; border-top: 1px solid var(--u-line); }
+}
+@media (max-width: 639px) {
+  .app.ui { grid-template-rows: minmax(0, 1fr); }
+  .app > .app__pane--list { display: none; }
+  .app > .app__pane + .app__pane { border-top: 0; }
+  .month-sheet strong { font-size: 40px; }
+}
+html, body {
+  background: #000;
+  color: #fff;
+  font-family: "DM Sans", system-ui, sans-serif;
+}
+main :is(h1, h2, h3, h4, p, li, a, span, strong, b) { color: #fff !important; }
+body {
+  background: linear-gradient(0deg, #ff9a3c 0%, #ff5a2a 12%, #e23a32 26%, #5a1420 42%, #000 58%);
+  background-attachment: fixed;
+}
+.hero, .section, .bg-ruled, .bg-band, .ground-inverse, .frame, .panel, .card, .app.ui, .ui, .ui-panel {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+.nav {
+  position: static !important;
+  background: transparent !important;
+  color: #fff;
+  border-bottom: 1px solid #fff;
+  box-shadow: none;
+}
+main > .hero { padding-top: 40px !important; }
+.close-row { display: flex; align-items: center; justify-content: flex-start; gap: 48px; }
+.close-row .section-head { margin: 0; }
+.close-row .btn { flex: none; }
+.mark { background: #fff; }
+.pill, .btn, .btn--primary, .btn--xl {
+  background: none !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  height: auto;
+  padding-inline: 0;
+}
+.btn::after, .btn--primary::after { content: none !important; }
+.btn:hover, .nav__link:hover, .link:hover { opacity: 0.65; }
+.hero__lead, .muted, .t-label { color: rgba(255, 255, 255, 0.72) !important; }
+.hero__window {
+  background: transparent !important;
+  border-radius: 0 !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+}
+.ui-win__row, .month-sheet li, .split-list li, .faq__item, .footer__legal {
+  border-color: #fff !important;
+  box-shadow: none !important;
+}
+.month-sheet strong, .ui-stat__num, .split-list b, .month-sheet b {
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+footer.closing {
+  background: transparent !important;
+  color: #fff !important;
+}
+footer.closing :is(h2, h4, p, a, span, li) { color: #fff !important; }
+.month-sheet, .ui, .ui-panel, .panel, .app.ui, .card, .frame {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+main > .hero, main > section.section, footer.closing {
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+main > section.section { padding-block: 72px !important; }
+.bg-ruled::before, .bg-ruled::after, .bg-band::before, .bg-band::after { display: none !important; }
+.ui, .ui-panel, .ui-win, .panel, .app.ui {
+  --u-bg: #1a0c10;
+  --u-ink: #ffffff;
+  --u-muted: rgba(255, 255, 255, 0.72);
+  --u-soft: rgba(255, 255, 255, 0.62);
+  --u-text-2: #ffffff;
+  --u-line: rgba(255, 255, 255, 0.28);
+  --u-line-2: rgba(255, 255, 255, 0.45);
+  --u-fill: rgba(255, 255, 255, 0.06);
+  --u-fill-2: rgba(255, 255, 255, 0.12);
+  --u-fill-3: rgba(255, 255, 255, 0.2);
+  --u-accent: #ffffff;
+  --u-accent-text: #ffffff;
+  --u-tint: rgba(255, 255, 255, 0.12);
+  background: #1a0c10 !important;
+  color: #ffffff !important;
+}
+.ui :is(span, b, em, p, li, div, time) { color: #ffffff; }
+.ui-check.is-done .ui-check__box, .ui-check.is-now .ui-check__box { background: #fff; color: #1a0c10; }
+.ui-check.is-done .ui-check__box path { stroke-dashoffset: 0; }
+.ui-check__box { box-shadow: inset 0 0 0 1.5px #fff; }
+.ui-dots i { background: #fff; }
+.step-num { color: #fff; border-color: #fff; }
+.ui-avatar { color: #fff; }
+.month-sheet { background: transparent !important; border: 0 !important; box-shadow: none !important; }
+@media (max-width: 720px) {
+  .close-row { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+<header class="nav nav--centre">
+  <div class="wrap nav__bar">
+    <a class="nav__logo" href="#top">IncomeFlow</a>
+    <nav class="nav__links" aria-label="Main">
+      <div class="nav__item">
+        <a class="nav__link" href="#month">Month <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <div class="nav__menu">
+          <div class="wrap grid">
+            <div class="menu-col span-4">
+              <p class="t-label">Month</p>
+              <a href="#month">This month<span>What counts right now</span></a>
+              <a href="#splits">Splits<span>Share one payment</span></a>
+            </div>
+            <div class="menu-col span-4">
+              <p class="t-label">Account</p>
+              <a href="#steps">Steps<span>Add a payment</span></a>
+              <a href="#questions">Questions<span>Currencies and privacy</span></a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="nav__item"><a class="nav__link" href="#splits">Splits</a></div>
+      <div class="nav__item"><a class="nav__link" href="#steps">Steps</a></div>
+      <div class="nav__item"><a class="nav__link" href="#questions">Questions</a></div>
+    </nav>
+    <div class="nav__actions">
+      <a class="btn btn--primary" href="design/index.html">Start tracking</a>
+    </div>
+    <button class="nav__toggle" type="button" aria-expanded="false" aria-label="Menu">
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 5h14M2 13h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero hero--centred bg-ruled" aria-labelledby="hero-h">
+    <div class="wrap"><div class="hero-text">
+      <div class="hero__c">
+        <p class="pill">Be organised with</p>
+        <h1 id="hero-h">Freelance income tracker</h1>
+        <p class="hero__lead">Add a payment once. It counts in the month you were paid, or you split it across the months it covers.</p>
+        <div class="btn-row">
+          <a class="btn btn--primary" href="design/index.html">Start tracking</a>
+        </div>
+      </div>
+      <div class="month-sheet hero-sheet">
+        <p class="t-label">This month</p>
+        <strong>75 150 Kč</strong>
+        <ul>
+          <li><span>Studio retainer</span><b>42 000 Kč</b></li>
+          <li><span>Dividend</span><b>3 150 Kč</b></li>
+          <li><span>Brand system, month 3 of 3</span><b>30 000 Kč</b></li>
+        </ul>
+      </div>
+    </div></div>
+  </section>
+
+  <section class="section ground-inverse" id="month" style="--h: 1" aria-labelledby="month-h">
+    <div class="wrap">
+      <div class="grid">
+        <h2 class="span-6" id="month-h">Your IncomeFlow month</h2>
+        <p class="span-6 start-7">Each payment shows in the month it belongs to. <a class="link" href="#splits">See a split</a></p>
+      </div>
+      <div class="month-sheet">
+        <p class="t-label">This month</p>
+        <strong>75 150 Kč</strong>
+        <ul>
+          <li><span>Studio retainer</span><b>42 000 Kč</b></li>
+          <li><span>Dividend</span><b>3 150 Kč</b></li>
+          <li><span>Brand system, month 3 of 3</span><b>30 000 Kč</b></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="splits" style="--h: 1" aria-labelledby="splits-h">
+    <div class="wrap">
+      <div class="grid">
+        <div class="span-6">
+          <h2 id="splits-h">IncomeFlow month splits</h2>
+          <p>An equal split puts the leftover cents on the last month.</p>
+          <ul class="split-list">
+            <li><span>Month 1</span><b>30 000 Kč</b></li>
+            <li><span>Month 2</span><b>30 000 Kč</b></li>
+            <li><span>Month 3</span><b>30 000 Kč</b></li>
+            <li><span>Payment</span><b>90 000 Kč</b></li>
+          </ul>
+          <a class="link" href="#steps">See the three steps</a>
+        </div>
+        <div class="span-6 start-7">
+          <div class="month-sheet">
+            <p class="t-label">One payment, three months</p>
+            <strong>90 000 Kč</strong>
+            <p>Each month shows 30 000 Kč. The year counts that slice once.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section bg-band" id="steps" style="--h: 1" aria-labelledby="steps-h">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="steps-h">IncomeFlow in 3 steps</h2>
+      </div>
+      <div class="grid">
+        <article class="card card--row card--open span-4">
+          <span class="step-num">1</span>
+          <h3>Add the payment</h3>
+          <p>Amount, where it came from, and the date you were paid.</p>
+        </article>
+        <article class="card card--row card--open span-4">
+          <span class="step-num">2</span>
+          <h3>Keep it or split it</h3>
+          <p>Leave it in that month, or divide it across the months it covers.</p>
+        </article>
+        <article class="card card--row card--open span-4">
+          <span class="step-num">3</span>
+          <h3>Read the year</h3>
+          <p>The year is the months added together. A split is not counted twice.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="questions" style="--h: 1" aria-labelledby="questions-h">
+    <div class="wrap">
+      <div class="grid">
+        <div class="span-6">
+          <h2 id="questions-h">IncomeFlow questions</h2>
+          <p>Your payments stay on the account you sign in with.</p>
+        </div>
+        <div class="span-6 start-7 faq">
+          <div class="faq__item"><h3>Who can see my income?</h3><p>Only you, after you sign in.</p></div>
+          <div class="faq__item"><h3>Which currencies?</h3><p>Czech koruna, euro, and US dollar. The month shows the one you pick.</p></div>
+          <div class="faq__item"><h3>How does a split work?</h3><p>One payment is divided across the months you choose. An equal split puts any leftover cents on the last month.</p></div>
+          <div class="faq__item"><h3>What if the months do not add up?</h3><p>The payment is not saved until the months match the total.</p></div>
+          <div class="faq__item"><h3>Can I remove a payment?</h3><p>Yes. Removing it deletes that payment and nothing else.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer closing footer--dark ground-inverse" id="contact">
+  <div class="wrap">
+    <div class="closing__cta close--type">
+      <div class="close-row">
+        <div class="section-head">
+          <h2 id="close-h">Start tracking this month</h2>
+          <p>Sign in, then add the next payment.</p>
+        </div>
+        <a class="btn btn--primary" href="design/index.html">Start tracking</a>
+      </div>
+    </div>
+    <div class="closing__links">
+      <div class="grid">
+        <div class="span-6 stack-4">
+          <a class="nav__logo" href="#top">IncomeFlow</a>
+          <p class="footer__lede">An income tracker that counts each payment in its month.</p>
+        </div>
+        <div class="span-2 footer__col"><h4>Month</h4><ul><li><a href="#month">Your month</a></li><li><a href="#splits">Splits</a></li></ul></div>
+        <div class="span-2 footer__col"><h4>Account</h4><ul><li><a href="design/index.html">Sign in</a></li><li><a href="#steps">Steps</a></li></ul></div>
+        <div class="span-2 footer__col"><h4>Questions</h4><ul><li><a href="#questions">Questions</a></li><li><a href="mailto:hello@incomeflow.example">Email us</a></li></ul></div>
+      </div>
+      <div class="footer__legal">
+        <span>&copy; 2026 Maxmilian Kunc &nbsp; <a href="privacy.html">Privacy</a> &nbsp; <a href="terms.html">Terms</a></span>
+        <div class="socials"></div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<nav class="actionbar" aria-label="Quick actions">
+  <a class="btn btn--primary" href="design/index.html">Start tracking</a>
+</nav>
+
+<script type="module" src="assets/system.js"></script>
+<script type="module" src="assets/motion/motion.js"></script>
+<script type="module" src="assets/layout/layout.js"></script>
+</body>
+</html>
