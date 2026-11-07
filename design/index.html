@@ -31,17 +31,6 @@
       background: transparent;
       -webkit-font-smoothing: antialiased;
     }
-    body::after {
-      content: "";
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 2px;
-      z-index: -1;
-      background-color: #ff9a3c;
-      pointer-events: none;
-    }
     body::before {
       content: "";
       position: fixed;
@@ -53,7 +42,9 @@
       height: 100vh;
       height: 100lvh;
       z-index: -1;
-      background: linear-gradient(0deg, #ff9a3c 0%, #ff5a2a 12%, #e23a32 26%, #5a1420 42%, #000 58%);
+      /* The bottom stays flat #ff9a3c (the root colour) so the strip Safari paints
+         under its toolbar blends into the gradient instead of showing a seam. */
+      background: linear-gradient(0deg, #ff9a3c 0%, #ff9a3c 10%, #ff5a2a 21%, #e23a32 34%, #5a1420 48%, #000 62%);
       pointer-events: none;
     }
     button, input { font: inherit; color: inherit; }
