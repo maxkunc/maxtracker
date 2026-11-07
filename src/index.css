@@ -32,6 +32,9 @@
     --input: 220 17% 88%;
     --ring: 233 79% 60%;
     --radius: 0.9rem;
+    --google-background: 0 0% 100%;
+    --google-border: 120 1% 46%;
+    --google-foreground: 0 0% 12%;
 
     --sidebar-background: 220 23% 98%;
     --sidebar-foreground: 226 29% 16%;
@@ -44,6 +47,9 @@
   }
 
   .dark {
+    --google-background: 240 3% 8%;
+    --google-border: 100 1% 56%;
+    --google-foreground: 120 2% 89%;
     --background: 228 26% 9%;
     --foreground: 220 20% 94%;
 
@@ -101,5 +107,19 @@
     background-image:
       radial-gradient(circle at top left, hsl(var(--primary) / 0.08), transparent 34%),
       linear-gradient(180deg, hsl(var(--background)), hsl(var(--background)));
+  }
+}
+
+@layer components {
+  .google-sign-in,
+  .google-sign-in:hover {
+    background-color: hsl(var(--google-background));
+    border-color: hsl(var(--google-border));
+    color: hsl(var(--google-foreground));
+    padding-inline: 12px;
+    gap: 10px;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
   }
 }
