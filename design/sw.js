@@ -2,7 +2,7 @@
 // Only same-origin GET requests are handled. Supabase, the Lovable OAuth broker
 // (/~oauth, on maxtracker.lovable.app) and other cross-origin calls always go
 // straight to the network, so sign-in and data are never served from cache.
-const CACHE = "incomeflow-v1";
+const CACHE = "incomeflow-v2";
 const SHELL = ["./", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png", "./icons/favicon-32.png"];
 
 self.addEventListener("install", (event) => {
