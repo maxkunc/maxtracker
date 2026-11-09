@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794241310220,
+      "tag": "0000_add_is_expected_to_income_entries",
+      "breakpoints": true
+    }
+  ]
+}

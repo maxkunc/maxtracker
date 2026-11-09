@@ -1,0 +1,1 @@
+ALTER TABLE public.income_entries ADD COLUMN is_expected boolean NOT NULL DEFAULT false;
