@@ -1016,12 +1016,12 @@
         }
         const actions = el("span", { class: "actions" });
         const metaLine = el("p", { class: "meta" }, [meta, actions]);
-        if (entry.expected && !editing) {
+        if (state.expectedReady && !editing) {
           actions.append(el("button", {
             type: "button",
-            class: "text-btn received-btn",
-            onclick: (event) => { event.stopPropagation(); markReceived(entry); }
-          }, ["Received"]));
+            class: "text-btn " + (entry.expected ? "received-btn" : "expected-btn"),
+            onclick: (event) => { event.stopPropagation(); setExpected(entry, !entry.expected); }
+          }, [entry.expected ? "Received" : "Not received"]));
         }
         if (entry.splitMonths > 1 && !editing) {
           actions.append(el("button", {
@@ -1298,15 +1298,17 @@
       });
     }
 
-    async function markReceived(entry) {
-      const { error } = await supabase.from("income_entries").update({ is_expected: false }).eq("id", entry.id);
+    // Received turns expected income into normal income; Not received does the reverse.
+    // The date and everything else stay as they are.
+    async function setExpected(entry, expected) {
+      const { error } = await supabase.from("income_entries").update({ is_expected: expected }).eq("id", entry.id);
       if (error) {
-        toast("Could not mark as received", error.message);
+        toast(expected ? "Could not mark as expected" : "Could not mark as received", error.message);
         return;
       }
       state.flash = true;
       await loadTracker(state.userId);
-      toast("Received", entry.source + " now counts as income.");
+      toast(expected ? "Moved to expected" : "Received", entry.source + (expected ? " is now expected income." : " now counts as income."));
     }
 
     async function addCategory(name) {
