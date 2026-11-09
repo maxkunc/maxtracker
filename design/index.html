@@ -84,6 +84,21 @@
     }
     .year-total strong { font-size: 1.15rem; }
     .profile { position: relative; }
+    .expected-toggle {
+      border: 0;
+      background: none;
+      padding: 4px 0;
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 700;
+      opacity: 0.4;
+      white-space: nowrap;
+    }
+    .expected-toggle[aria-pressed="true"] { opacity: 1; text-decoration: underline; text-underline-offset: 4px; }
+    .expected-line { margin: 10px 0 0; color: rgba(255, 255, 255, 0.72); font-size: 0.92rem; }
+    .entry.expected .source, .entry.expected .money { opacity: 0.55; }
+    .badge.expected-tag { color: #fff; }
+    .kind { margin-bottom: 14px; }
     .avatar {
       border: 0;
       background: transparent;
@@ -184,7 +199,7 @@
     .months[aria-label="Year"] .m-amt { font-size: 0.65rem; }
 
     .hero {
-      padding: 8px 0 0;
+      padding: 8px 0 12px;
       background: none;
     }
     .eyebrow {
@@ -503,6 +518,7 @@
         <p class="sub">What counts this month.</p>
       </div>
       <div class="header-tools" id="header-tools" hidden>
+        <button type="button" class="expected-toggle" id="expected-toggle" aria-pressed="false" hidden>+ Expected</button>
         <div class="year-total">
           <span id="year-label">2026 total</span>
           <strong id="year-total" class="num"></strong>
@@ -555,6 +571,10 @@
         <h2>Log income</h2>
         <p class="help">It counts in the month of the date, unless you spread it.</p>
         <form id="log">
+          <div class="segmented kind" id="kind" role="group" aria-label="Income type" hidden>
+            <button type="button" data-kind="received" aria-pressed="true">Received</button>
+            <button type="button" data-kind="expected" aria-pressed="false">Expected</button>
+          </div>
           <label for="amount">Amount</label>
           <input id="amount" class="amount" name="amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required />
 
@@ -634,6 +654,13 @@
         return [];
       }
     }
+    const EXPECTED_KEY = "incomeflow:with-expected";
+    function loadFlag(key) {
+      try { return localStorage.getItem(key) === "1"; } catch { return false; }
+    }
+    function saveFlag(key, on) {
+      try { localStorage.setItem(key, on ? "1" : "0"); } catch {}
+    }
     function saveFilter() {
       try { localStorage.setItem(FILTER_KEY, JSON.stringify(state.filter)); } catch {}
     }
@@ -646,6 +673,8 @@
       category: null,
       viewMonth: TODAY.slice(0, 7),
       filter: loadFilter(),
+      expectedReady: false,
+      withExpected: loadFlag(EXPECTED_KEY),
       openId: null,
       editId: null,
       editSource: "",
@@ -656,6 +685,7 @@
     };
 
     const form = {
+      expected: false,
       spread: false,
       months: 3,
       type: "equal",
@@ -697,7 +727,8 @@
     }
     function renderYear() {
       const year = TODAY.slice(0, 4);
-      document.getElementById("year-label").textContent = year + (state.filter.length ? " total · filtered" : " total");
+      const withExpected = state.expectedReady && state.withExpected;
+      document.getElementById("year-label").textContent = year + (withExpected ? " + expected" : " total") + (state.filter.length ? " · filtered" : "");
       document.getElementById("year-total").textContent = money(yearTotal(year));
     }
     function monthKey(iso) { return iso.slice(0, 7); }
@@ -811,11 +842,24 @@
       return amounts.map((amount, index) => ({ month: addMonths(start, index), amount: round2(amount) }));
     }
 
-    function monthTotal(ym) {
-      return round2(visibleEntries().reduce((sum, entry) => {
+    // Expected income only counts in sums when the expected view is on.
+    function counts(entry) {
+      return !entry.expected || (state.expectedReady && state.withExpected);
+    }
+
+    function sumInMonth(entries, ym) {
+      return round2(entries.reduce((sum, entry) => {
         const hit = parts(entry).find((part) => part.month === ym);
         return sum + (hit ? hit.amount : 0);
       }, 0));
+    }
+
+    function monthTotal(ym) {
+      return sumInMonth(visibleEntries().filter(counts), ym);
+    }
+
+    function monthExpected(ym) {
+      return sumInMonth(visibleEntries().filter((entry) => entry.expected), ym);
     }
 
     function yearsShown() {
@@ -854,7 +898,8 @@
         .map((entry) => ({ entry, part: parts(entry).find((part) => part.month === ym) }))
         .filter((row) => row.part)
         .sort((a, b) => b.entry.date.localeCompare(a.entry.date));
-      const shared = rows.filter((row) => row.entry.splitMonths > 1);
+      const counted = rows.filter((row) => counts(row.entry));
+      const shared = counted.filter((row) => row.entry.splitMonths > 1);
       const sharedSum = round2(shared.reduce((sum, row) => sum + row.part.amount, 0));
 
       monthEl.replaceChildren();
@@ -902,12 +947,18 @@
       const figure = el("p", { class: state.flash ? "figure flash num" : "figure num" }, [money(total)]);
       hero.append(figure);
       state.flash = false;
+      const expectedSum = monthExpected(ym);
+      if (expectedSum > 0) {
+        hero.append(el("p", { class: "expected-line" }, [
+          state.withExpected ? "Includes " + money(expectedSum) + " expected." : "Expected " + money(expectedSum) + " total."
+        ]));
+      }
 
       let meaning = state.filter.length ? "Nothing in these categories counts in this month." : "Nothing counts in this month yet.";
-      if (rows.length && shared.length) {
+      if (counted.length && shared.length) {
         const names = shared.map((row) => row.entry.source);
         meaning = money(sharedSum) + " is " + listSentence(names) + ", shared with other months.";
-      } else if (rows.length) {
+      } else if (counted.length) {
         meaning = "Everything here was logged in " + formatMonth(ym, { month: "long" }) + ".";
       }
       hero.append(el("p", { class: "meaning" }, [meaning]));
@@ -943,7 +994,7 @@
       rows.forEach(({ entry, part }) => {
         const open = state.openId === entry.id && entry.splitMonths > 1;
         const editing = state.editId === entry.id;
-        const button = el("div", { class: open ? "entry open" : "entry" });
+        const button = el("div", { class: "entry" + (open ? " open" : "") + (entry.expected ? " expected" : "") });
         const sourceNode = editing
           ? el("input", {
             type: "text",
@@ -954,6 +1005,7 @@
           })
           : el("span", { class: "source" }, [entry.source]);
         const top = el("div", { class: "entry-top" }, [
+          entry.expected ? el("span", { class: "badge expected-tag" }, ["Expected"]) : "",
           el("span", { class: "badge" }, [categoryName(entry.categoryId)]),
           sourceNode
         ]);
@@ -964,6 +1016,13 @@
         }
         const actions = el("span", { class: "actions" });
         const metaLine = el("p", { class: "meta" }, [meta, actions]);
+        if (entry.expected && !editing) {
+          actions.append(el("button", {
+            type: "button",
+            class: "text-btn received-btn",
+            onclick: (event) => { event.stopPropagation(); markReceived(entry); }
+          }, ["Received"]));
+        }
         if (entry.splitMonths > 1 && !editing) {
           actions.append(el("button", {
             type: "button",
@@ -1150,7 +1209,7 @@
     function updateSubmit() {
       const amount = Number(amountEl.value);
       const source = sourceEl.value.trim();
-      submitEl.textContent = "Add income";
+      submitEl.textContent = form.expected ? "Add expected" : "Add income";
       const planned = draftParts(amount);
       let note = "";
       if (form.spread && amount > 0) {
@@ -1195,7 +1254,8 @@
         date: String(row.date).slice(0, 10),
         splitMonths: row.split_months,
         splitType: row.split_type,
-        monthlyAmounts: parseMonthlyAmounts(row.monthly_amounts)
+        monthlyAmounts: parseMonthlyAmounts(row.monthly_amounts),
+        expected: row.is_expected === true
       };
     }
 
@@ -1210,11 +1270,43 @@
       }
       state.categories = categoriesResponse.data || [];
       state.entries = (entriesResponse.data || []).map(mapEntry);
+      await detectExpected();
       if (state.category && !state.categories.some((category) => category.id === state.category)) state.category = null;
       pruneFilter();
       renderChips();
       renderMonth();
       updateSubmit();
+    }
+
+    // Expected income needs an is_expected column on income_entries. Until it
+    // exists, the expected controls stay hidden and everything works as before.
+    async function detectExpected() {
+      if (state.expectedReady) return;
+      const { error } = await supabase.from("income_entries").select("is_expected").limit(1);
+      state.expectedReady = !error;
+      renderExpectedControls();
+    }
+
+    function renderExpectedControls() {
+      const ready = state.expectedReady;
+      expectedToggle.hidden = !ready;
+      expectedToggle.setAttribute("aria-pressed", ready && state.withExpected ? "true" : "false");
+      kindEl.hidden = !ready;
+      if (!ready) form.expected = false;
+      kindEl.querySelectorAll("button").forEach((button) => {
+        button.setAttribute("aria-pressed", (button.dataset.kind === "expected") === form.expected ? "true" : "false");
+      });
+    }
+
+    async function markReceived(entry) {
+      const { error } = await supabase.from("income_entries").update({ is_expected: false }).eq("id", entry.id);
+      if (error) {
+        toast("Could not mark as received", error.message);
+        return;
+      }
+      state.flash = true;
+      await loadTracker(state.userId);
+      toast("Received", entry.source + " now counts as income.");
     }
 
     async function addCategory(name) {
@@ -1280,7 +1372,7 @@
       const monthlyAmounts = splitType === "custom" ? draftParts(amount).map((part) => part.amount) : null;
       state.saving = true;
       submitEl.disabled = true;
-      const { error } = await supabase.from("income_entries").insert({
+      const row = {
         amount,
         category_id: state.category && state.category !== "__new" ? state.category : null,
         currency: state.currency,
@@ -1290,7 +1382,10 @@
         split_months: splitMonths,
         split_type: splitType,
         user_id: state.userId
-      });
+      };
+      if (form.expected) row.is_expected = true;
+      const wasExpected = form.expected;
+      const { error } = await supabase.from("income_entries").insert(row);
       state.saving = false;
       if (error) {
         toast("Could not save income", error.message);
@@ -1303,18 +1398,35 @@
       amountEl.value = "";
       sourceEl.value = "";
       form.spread = false;
+      form.expected = false;
+      renderExpectedControls();
       renderSplitControls();
       await loadTracker(state.userId);
       updateSubmit();
       if (phoneQuery.matches) setView("dashboard");
       else amountEl.focus();
-      toast("Income saved", money(amount) + " saved.");
+      toast(wasExpected ? "Expected income saved" : "Income saved", money(amount) + (wasExpected ? " expected." : " saved."));
     });
 
     [amountEl, sourceEl, dateEl].forEach((input) => input.addEventListener("input", () => {
       if (input === dateEl) renderSplitControls();
       else updateSubmit();
     }));
+    const expectedToggle = document.getElementById("expected-toggle");
+    const kindEl = document.getElementById("kind");
+    expectedToggle.addEventListener("click", () => {
+      state.withExpected = !state.withExpected;
+      saveFlag(EXPECTED_KEY, state.withExpected);
+      renderExpectedControls();
+      renderMonth();
+    });
+    kindEl.querySelectorAll("button").forEach((button) => {
+      button.addEventListener("click", () => {
+        form.expected = button.dataset.kind === "expected";
+        renderExpectedControls();
+        updateSubmit();
+      });
+    });
     spreadToggle.addEventListener("click", () => {
       form.spread = !form.spread;
       syncCustomLength();
