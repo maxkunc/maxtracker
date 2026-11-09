@@ -46,6 +46,7 @@ export type Database = {
           currency: string
           date: string
           id: string
+          is_expected: boolean
           monthly_amounts: Json | null
           source: string
           split_months: number
@@ -60,6 +61,7 @@ export type Database = {
           currency: string
           date: string
           id?: string
+          is_expected?: boolean
           monthly_amounts?: Json | null
           source: string
           split_months?: number
@@ -74,6 +76,7 @@ export type Database = {
           currency?: string
           date?: string
           id?: string
+          is_expected?: boolean
           monthly_amounts?: Json | null
           source?: string
           split_months?: number
