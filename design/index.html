@@ -117,6 +117,8 @@
       border: 0;
       padding: 16px;
       z-index: 6;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
     }
     .profile-name { margin: 0; font-weight: 700; }
     .profile-label {
@@ -391,6 +393,27 @@
       background: rgba(255, 255, 255, 0.35);
     }
     .entry-edit { height: 36px; font-size: 1rem; }
+    select {
+      font: inherit;
+      color: #fff;
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 0;
+      padding: 4px 18px 4px 0;
+      max-width: 100%;
+    }
+    select option { color: #000; }
+    select:focus-visible { outline: none; border-bottom-color: #fff; }
+    .entry-cat { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+    .cat-list { margin: 0; padding: 0; list-style: none; }
+    .cat-row { padding: 10px 0; border-top: 1px solid var(--line); }
+    .cat-row:first-child { border-top: 0; padding-top: 2px; }
+    .cat-name { font-weight: 700; }
+    .cat-count { color: var(--muted); font-size: 0.8rem; margin-left: 6px; }
+    .cat-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin-top: 4px; }
+    .cat-actions .text-btn { padding: 4px 0; }
+    .cat-empty { margin: 0; color: var(--muted); font-size: 0.85rem; }
     .sign-out { display: block; margin-top: 16px; color: #fff; font-weight: 700; }
 
     .toast {
@@ -530,6 +553,8 @@
             <button type="button" class="text-btn sign-out" id="sign-out">Sign out</button>
             <p class="profile-label" id="currency-label">Currency</p>
             <div class="segmented" id="currency-choices" role="group" aria-labelledby="currency-label"></div>
+            <p class="profile-label">Categories</p>
+            <div class="cat-manage" id="cat-manage"></div>
           </div>
         </div>
       </div>
@@ -604,6 +629,8 @@
         <p class="profile-name" id="profile-view-name"></p>
         <p class="profile-label" id="currency-view-label">Currency</p>
         <div class="segmented" id="currency-view-choices" role="group" aria-labelledby="currency-view-label"></div>
+        <p class="profile-label">Categories</p>
+        <div class="cat-manage" id="cat-manage-view"></div>
         <button type="button" class="text-btn sign-out" id="sign-out-view">Sign out</button>
       </section>
     </main>
@@ -679,6 +706,8 @@
       editId: null,
       editSource: "",
       editAmount: "",
+      editCategory: null,
+      catAction: null,
       flash: false,
       saving: false,
       entries: []
@@ -826,6 +855,116 @@
         }, [name]));
       });
       return bar;
+    }
+
+    // A <select> of the user's categories plus Uncategorized (value null).
+    function categorySelect(value, onChange, label, options) {
+      const select = el("select", { "aria-label": label });
+      const list = options || [[null, "Uncategorized"], ...state.categories.map((category) => [category.id, category.name])];
+      list.forEach(([id, name]) => {
+        const option = el("option", { value: id || "" }, [name]);
+        if ((id || "") === (value || "")) option.selected = true;
+        select.append(option);
+      });
+      select.addEventListener("change", () => onChange(select.value || null));
+      select.addEventListener("click", (event) => event.stopPropagation());
+      return select;
+    }
+
+    function categoryCount(id) {
+      return state.entries.filter((entry) => entry.categoryId === id).length;
+    }
+
+    function entriesLabel(n) {
+      return n + (n === 1 ? " entry" : " entries");
+    }
+
+    function renderCategoryManager() {
+      ["cat-manage", "cat-manage-view"].forEach((containerId) => {
+        const container = document.getElementById(containerId);
+        container.replaceChildren();
+        if (!state.categories.length) {
+          container.append(el("p", { class: "cat-empty" }, ["No categories yet. Add one with + when logging income."]));
+          return;
+        }
+        const list = el("ul", { class: "cat-list" });
+        state.categories.forEach((category) => {
+          const action = state.catAction && state.catAction.id === category.id ? state.catAction : null;
+          const row = el("li", { class: "cat-row" }, [
+            el("span", { class: "cat-name" }, [category.name]),
+            el("span", { class: "cat-count" }, [entriesLabel(categoryCount(category.id))])
+          ]);
+          const actions = el("div", { class: "cat-actions" });
+          if (action) {
+            const others = state.categories.filter((other) => other.id !== category.id);
+            if (!action.target && others.length) action.target = others[0].id;
+            actions.append(
+              categorySelect(action.target, (value) => { action.target = value; }, "Merge " + category.name + " into",
+                others.map((other) => [other.id, other.name])),
+              el("button", { type: "button", class: "text-btn", onclick: () => mergeCategory(category, action.target) }, ["Merge"]),
+              el("button", { type: "button", class: "text-btn", onclick: () => { state.catAction = null; renderCategoryManager(); } }, ["Cancel"])
+            );
+          } else {
+            if (state.categories.length > 1) {
+              actions.append(el("button", {
+                type: "button",
+                class: "text-btn",
+                onclick: () => { state.catAction = { id: category.id, target: null }; renderCategoryManager(); }
+              }, ["Merge into…"]));
+            }
+            actions.append(el("button", { type: "button", class: "text-btn danger", onclick: () => deleteCategory(category) }, ["Delete"]));
+          }
+          row.append(actions);
+          list.append(row);
+        });
+        container.append(list);
+      });
+    }
+
+    // Merge: move every entry from one category to another, then delete the empty one.
+    async function mergeCategory(from, toId) {
+      const to = state.categories.find((category) => category.id === toId);
+      if (!to) return;
+      const n = categoryCount(from.id);
+      if (!window.confirm("Move " + entriesLabel(n) + " from " + from.name + " to " + to.name + " and delete " + from.name + "?")) return;
+      const moved = await supabase.from("income_entries").update({ category_id: to.id }).eq("user_id", state.userId).eq("category_id", from.id);
+      if (moved.error) {
+        toast("Could not merge categories", moved.error.message);
+        return;
+      }
+      const removed = await supabase.from("categories").delete().eq("id", from.id);
+      state.catAction = null;
+      if (removed.error) {
+        toast("Entries moved, but " + from.name + " was not deleted", removed.error.message);
+      } else {
+        toast("Categories merged", from.name + " is now part of " + to.name + ".");
+      }
+      await loadTracker(state.userId);
+    }
+
+    // Delete a category but keep its income: entries become Uncategorized.
+    async function deleteCategory(category) {
+      const n = categoryCount(category.id);
+      const message = n
+        ? "Delete " + category.name + "? " + (n === 1 ? "Its entry stays" : "Its " + n + " entries stay") + ", as Uncategorized."
+        : "Delete " + category.name + "?";
+      if (!window.confirm(message)) return;
+      if (n) {
+        const cleared = await supabase.from("income_entries").update({ category_id: null }).eq("user_id", state.userId).eq("category_id", category.id);
+        if (cleared.error) {
+          toast("Could not delete category", cleared.error.message);
+          return;
+        }
+      }
+      const { error } = await supabase.from("categories").delete().eq("id", category.id);
+      if (error) {
+        toast("Could not delete category", error.message);
+        await loadTracker(state.userId);
+        return;
+      }
+      state.catAction = null;
+      toast("Category deleted", n ? entriesLabel(n) + " kept as Uncategorized." : category.name);
+      await loadTracker(state.userId);
     }
 
     function categoryName(id) {
@@ -1004,9 +1143,13 @@
             oninput: (event) => { state.editSource = event.target.value; }
           })
           : el("span", { class: "source" }, [entry.source]);
+        const categoryNode = editing
+          ? categorySelect(state.editCategory, (value) => { state.editCategory = value; }, "Category")
+          : el("span", { class: "badge" }, [categoryName(entry.categoryId)]);
+        if (editing) categoryNode.classList.add("entry-cat");
         const top = el("div", { class: "entry-top" }, [
           entry.expected ? el("span", { class: "badge expected-tag" }, ["Expected"]) : "",
-          el("span", { class: "badge" }, [categoryName(entry.categoryId)]),
+          categoryNode,
           sourceNode
         ]);
         let meta = formatDay(entry.date);
@@ -1058,6 +1201,7 @@
               state.editId = entry.id;
               state.editSource = entry.source;
               state.editAmount = String(entry.amount);
+              state.editCategory = entry.categoryId || null;
               state.openId = null;
               renderMonth();
             }
@@ -1273,6 +1417,8 @@
       await detectExpected();
       if (state.category && !state.categories.some((category) => category.id === state.category)) state.category = null;
       pruneFilter();
+      if (state.catAction && !state.categories.some((category) => category.id === state.catAction.id)) state.catAction = null;
+      renderCategoryManager();
       renderChips();
       renderMonth();
       updateSubmit();
@@ -1327,6 +1473,7 @@
       state.categories = [...state.categories, data].sort((a, b) => a.name.localeCompare(b.name));
       state.category = data.id;
       renderChips();
+      renderCategoryManager();
       toast("Category added", data.name);
     }
 
@@ -1350,7 +1497,7 @@
         toast("Could not update entry", "Enter a source and an amount greater than zero.");
         return;
       }
-      const payload = { source, amount };
+      const payload = { source, amount, category_id: state.editCategory || null };
       if (entry.splitType === "custom" && entry.monthlyAmounts?.length) {
         payload.monthly_amounts = scaleCustomAmounts(entry.monthlyAmounts, amount);
       }
@@ -1480,7 +1627,7 @@
       profileBtn.setAttribute("aria-expanded", open ? "true" : "false");
     });
     document.addEventListener("click", (event) => {
-      if (profilePanel.hidden || event.target.closest(".profile")) return;
+      if (profilePanel.hidden || !event.target.isConnected || event.target.closest(".profile")) return;
       profilePanel.hidden = true;
       profileBtn.setAttribute("aria-expanded", "false");
     });
