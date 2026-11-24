@@ -1,0 +1,2 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+export const supabase = createClient('https://ndjlaywmrfynnseuxgxn.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kamxheXdtcmZ5bm5zZXV4Z3huIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMDQxNjMsImV4cCI6MjA4OTY4MDE2M30.Uz47X3OBW9EQlbEmvGa8P0a2B03F7rsolbIwca7diWU', { auth: { storage: localStorage, persistSession: true, autoRefreshToken: true } });
